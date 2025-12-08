@@ -1,0 +1,57 @@
+﻿#include "pch.h"
+#include "config.h"
+#include <stdio.h>
+
+PK_CONFIG g_pk_config = {0};
+
+void pk_config_create_default(const char *path)
+{
+    FILE *f = fopen(path, "w");
+    if (f)
+    {
+        fputs(
+            "[General]\n"
+            "; PlugK Configuration File\n\n"
+            "[Shop]\n"
+            "; 设置为1，商店的回复类与暗器类物品购买后不消失 \n"
+            "ShopNoVanish=0\n\n"
+            "[Resolution]\n"
+            "; 启用分辨率补丁，会跳过读取 set.ini Enable=1 开启\n"
+            "Enabled=1\n"
+            "Width=800\n"
+            "Height=600\n",
+            f);
+        fclose(f);
+    }
+}
+
+void pk_config_load()
+{
+    char ini_path[MAX_PATH];
+    char dll_path[MAX_PATH];
+
+    HMODULE hModule = GetModuleHandleA("PlugK.dll");
+    if (!hModule)
+        hModule = GetModuleHandleA(NULL);
+
+    GetModuleFileNameA(hModule, dll_path, MAX_PATH);
+    char *last_slash = strrchr(dll_path, '\\');
+    if (last_slash)
+        *(last_slash + 1) = '\0';
+
+    snprintf(ini_path, MAX_PATH, "%sPlugK.ini", dll_path);
+
+    if (GetFileAttributesA(ini_path) == INVALID_FILE_ATTRIBUTES)
+    {
+        pk_config_create_default(ini_path);
+    }
+
+    // 商店配置
+    g_pk_config.shop_no_vanish = GetPrivateProfileIntA("Shop", "ShopNoVanish", 0, ini_path);
+
+    // [新增] 分辨率配置
+    // 如果没有配置，默认给个 800x600 保底
+    g_pk_config.res_enabled = GetPrivateProfileIntA("Resolution", "Enabled", 0, ini_path);
+    g_pk_config.res_width = GetPrivateProfileIntA("Resolution", "Width", 800, ini_path);
+    g_pk_config.res_height = GetPrivateProfileIntA("Resolution", "Height", 600, ini_path);
+}
