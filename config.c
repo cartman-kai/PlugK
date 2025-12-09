@@ -11,7 +11,10 @@ void pk_config_create_default(const char *path)
     {
         fputs(
             "[General]\n"
-            "; PlugK Configuration File\n\n"
+            "; PlugK Configuration File\n"
+            ";回复物品进入背包叠加 1=启用 0=关闭\n"
+            "StackPotion=0\n"
+            "\n"
             "[Shop]\n"
             "; 设置为1，商店的回复类与暗器类物品购买后不消失 \n"
             "ShopNoVanish=0\n\n"
@@ -54,4 +57,8 @@ void pk_config_load()
     g_pk_config.res_enabled = GetPrivateProfileIntA("Resolution", "Enabled", 0, ini_path);
     g_pk_config.res_width = GetPrivateProfileIntA("Resolution", "Width", 800, ini_path);
     g_pk_config.res_height = GetPrivateProfileIntA("Resolution", "Height", 600, ini_path);
+
+    // [新增] 堆叠配置
+    // 读取 [General] 或 [Item] 下的配置，这里假设放在 [General] 下
+    g_pk_config.stack_potion = GetPrivateProfileIntA("General", "StackPotion", 0, ini_path);
 }
