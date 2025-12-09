@@ -13,6 +13,10 @@ typedef struct
     int res_width;
     int res_height;
 
+    // [新增] 道具堆叠功能
+    // 1 = 开启回复类道具自动堆叠，且不占用暗器栏
+    BOOL stack_potion;
+
 } PK_CONFIG;
 
 extern PK_CONFIG g_pk_config;

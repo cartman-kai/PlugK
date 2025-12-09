@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="config.c" />
     <ClCompile Include="dllmain.c" />
+    <ClCompile Include="item_stack.c" />
     <ClCompile Include="pch.c" />
     <ClCompile Include="resolution.c" />
     <ClCompile Include="shop.c" />
@@ -28,6 +29,7 @@
   <ItemGroup>
     <ClInclude Include="config.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="item_stack.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resolution.h" />
     <ClInclude Include="shop.h" />
