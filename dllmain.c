@@ -4,6 +4,7 @@
 #include "shop.h"
 #include "resolution.h"
 #include "item_stack.h"
+#include "inventory.h"
 #include <windows.h>
 #include <stdio.h>
 
@@ -72,6 +73,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             pk_shop_init(ver);
             pk_resolution_init(ver);
             pk_item_stack_init(ver);
+            pk_inventory_init(ver);
         }
         else
         {
