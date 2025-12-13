@@ -33,6 +33,9 @@
     <ClCompile Include="item_stack.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="inventory.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -51,6 +54,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="item_stack.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inventory.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
