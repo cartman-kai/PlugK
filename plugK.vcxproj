@@ -26,6 +26,7 @@
     <ClCompile Include="pch.c" />
     <ClCompile Include="resolution.c" />
     <ClCompile Include="shop.c" />
+    <ClCompile Include="ui_fix.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h" />
@@ -35,6 +36,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="resolution.h" />
     <ClInclude Include="shop.h" />
+    <ClInclude Include="ui_fix.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

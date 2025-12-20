@@ -18,6 +18,10 @@ void pk_config_create_default(const char *path)
             "[Inventory]\n"
             "; 启用背包一键整理 (Ctrl+\\) 1=启用 0=关闭\n"
             "EnableSort=0\n\n"
+            "[Interface]\n"
+            "; 打开背包/技能/属性窗口时，保持画面不左右移动（减少晃动感）\n"
+            "; 1=开启(画面居中) 0=关闭(默认，画面右移)\n"
+            "KeepCenter=0\n\n"
             "[Shop]\n"
             "; 设置为1，商店的回复类与暗器类物品购买后不消失 \n"
             "ShopNoVanish=0\n\n"
@@ -67,4 +71,7 @@ void pk_config_load()
 
     // [新增] 读取背包整理开关
     g_pk_config.inventory_sort = GetPrivateProfileIntA("Inventory", "EnableSort", 0, ini_path);
+
+    // [新增] 打开背包界面不晃动
+    g_pk_config.ui_keep_center = GetPrivateProfileIntA("Interface", "KeepCenter", 0, ini_path);
 }
