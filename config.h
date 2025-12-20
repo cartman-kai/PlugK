@@ -19,6 +19,10 @@ typedef struct
     // 道具排序
     BOOL inventory_sort;
 
+    // [新增] 界面修正功能
+    // 打开窗口时保持画面居中，不进行平移
+    BOOL ui_keep_center;
+
 } PK_CONFIG;
 
 extern PK_CONFIG g_pk_config;

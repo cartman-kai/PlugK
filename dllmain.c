@@ -74,6 +74,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             pk_resolution_init(ver);
             pk_item_stack_init(ver);
             pk_inventory_init(ver);
+            // [新增] 打开道具画面防抖动功能
+            pk_ui_fix_init(ver);
         }
         else
         {

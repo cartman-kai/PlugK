@@ -36,6 +36,9 @@
     <ClCompile Include="inventory.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="ui_fix.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config.h">
@@ -57,6 +60,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="inventory.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ui_fix.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
