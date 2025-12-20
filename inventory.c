@@ -1,19 +1,28 @@
-#include "pch.h" // 确保包含 pch.h 如果项目设置了预编译头
+#include "pch.h"
 #include "inventory.h"
 #include "config.h"
 #include <stdio.h>
 
 // ---------------------------------------------------------
-// 地址定义 (v1.05)
+// 全局地址变量 (在 init 中根据版本动态赋值)
 // ---------------------------------------------------------
-#define ADDR_GET_CHAR_INFO 0x004892D0
-#define ADDR_GLOBAL_VAR 0x005585C0
-#define ADDR_DELETE_ITEM 0x004CF550 // [新增] 游戏原生删除函数
+static DWORD g_Addr_GetCharInfo = 0;
+static DWORD g_Addr_GlobalVar = 0;
+static DWORD g_Addr_DeleteItem = 0;
+
+// 偏移量 (两个版本一致，但为了扩展性也定义为变量)
+static DWORD g_Offset_PoolPtr = 0xA0;   // 物品池指针数组
+static DWORD g_Offset_SlotArray = 0xA4; // 背包格子 Index 数组
+static DWORD g_Offset_DelSlot = 0x88;   // 删除用的临时槽位
+static DWORD g_Offset_DelMgr = 0x68;    // 删除用的管理器对象
 
 // 全局线程控制标记
 volatile BOOL g_bMonitorThreadRunning = TRUE;
 
-// 辅助结构
+// ---------------------------------------------------------
+// 辅助结构与函数
+// ---------------------------------------------------------
+
 typedef struct
 {
     int Index;
@@ -24,12 +33,16 @@ typedef struct
     DWORD Price;
 } SortItemNode;
 
-// 获取角色基址
+// 获取角色基址 (通用版)
 DWORD GetCharacterBase()
 {
-    DWORD func = ADDR_GET_CHAR_INFO;
-    DWORD param = ADDR_GLOBAL_VAR;
+    if (g_Addr_GetCharInfo == 0)
+        return 0;
+
+    DWORD func = g_Addr_GetCharInfo;
+    DWORD param = g_Addr_GlobalVar;
     DWORD result = 0;
+
     __asm {
         push param
         call func
@@ -39,29 +52,25 @@ DWORD GetCharacterBase()
     return result;
 }
 
-// [新增] 安全删除物品
-// 模拟 sub_47FEE0 中的调用逻辑
+// 安全删除物品 (通用版)
 void SafeDeleteItem(DWORD charBase, ItemObject *itemPtr)
 {
-    if (charBase == 0 || itemPtr == NULL)
+    if (charBase == 0 || itemPtr == NULL || g_Addr_DeleteItem == 0)
         return;
 
-    DWORD func_delete = ADDR_DELETE_ITEM;
+    DWORD func_delete = g_Addr_DeleteItem;
 
-    // 根据 ASM 分析：
-    // 1. 待删除指针放入 [ESI + 0x88]
-    // 2. ECX = ESI + 0x68
-    // 3. call sub_4CF550
+    // 逻辑适用于 1.05 和 2.01:
+    // 1. target_slot (Base + 0x88) = itemPtr
+    // 2. ECX = this_param (Base + 0x68)
+    // 3. call func_delete
 
-    DWORD target_slot = charBase + 0x88;
-    DWORD this_param = charBase + 0x68;
+    DWORD target_slot = charBase + g_Offset_DelSlot;
+    DWORD this_param = charBase + g_Offset_DelMgr;
 
     __try
     {
-        // 1. 将指针写入游戏指定的临时槽位
         *(DWORD *)target_slot = (DWORD)itemPtr;
-
-        // 2. 调用游戏删除函数
         __asm {
             mov ecx, this_param
             call func_delete
@@ -69,7 +78,6 @@ void SafeDeleteItem(DWORD charBase, ItemObject *itemPtr)
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        // 防止崩溃
         OutputDebugStringA("PlugK: Exception in SafeDeleteItem");
     }
 }
@@ -90,34 +98,47 @@ int CompareItems(const void *a, const void *b)
     SortItemNode *itemA = (SortItemNode *)a;
     SortItemNode *itemB = (SortItemNode *)b;
 
+    // 1. ID 小 -> 大
     if (itemA->ID != itemB->ID)
         return (int)itemA->ID - (int)itemB->ID;
+    // 2. 数量 大 -> 小
     if (itemA->Count != itemB->Count)
         return (int)itemB->Count - (int)itemA->Count;
+    // 3. 等级 小 -> 大
     if (itemA->Level != itemB->Level)
         return (int)itemA->Level - (int)itemB->Level;
+    // 4. 价格 低 -> 高
     if (itemA->Price > itemB->Price)
         return 1;
     if (itemA->Price < itemB->Price)
         return -1;
+
     return 0;
 }
 
+// ---------------------------------------------------------
+// 核心整理逻辑
+// ---------------------------------------------------------
 void PerformOrganize()
 {
     DWORD charBase = GetCharacterBase();
     if (charBase == 0)
         return;
 
-    int *slotArray = (int *)(charBase + 0xA4);
-    DWORD *itemPoolPtr = *(DWORD **)(charBase + 0xA0);
-    if (itemPoolPtr == NULL)
+    // 获取关键指针
+    int *slotArray = (int *)(charBase + g_Offset_SlotArray);
+
+    // charBase + 0xA0 存放的是指向 "指针数组" 的指针
+    DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
+    if (poolAddress == 0)
         return;
+
+    DWORD *itemPoolPtr = (DWORD *)poolAddress;
 
     SortItemNode items[50];
     int validCount = 0;
 
-    // 1. 读取
+    // 1. 读取有效物品
     for (int i = 0; i < 50; i++)
     {
         int idx = slotArray[i];
@@ -143,7 +164,7 @@ void PerformOrganize()
     // 2. 预排序 (为了合并)
     qsort(items, validCount, sizeof(SortItemNode), CompareItems);
 
-    // 3. 合并逻辑
+    // 3. 合并逻辑 (Stacking)
     for (int i = 0; i < validCount; i++)
     {
         if (items[i].Count == 0)
@@ -166,12 +187,9 @@ void PerformOrganize()
                 items[i].Count += take;
                 items[j].Count -= take;
 
-                // 更新内存
+                // 立即更新内存
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
-
-                // [重点] 如果物品被掏空 (Count变为0)，标记为需要删除
-                // 我们在下一步统一处理删除，避免破坏当前循环的指针
 
                 if (items[i].Count == 9)
                     break;
@@ -179,7 +197,7 @@ void PerformOrganize()
         }
     }
 
-    // 4. 处理被合并空的物品 & 准备最终排序
+    // 4. 清理废弃物品 & 准备最终排序
     SortItemNode finalItems[50];
     int finalCount = 0;
 
@@ -191,17 +209,15 @@ void PerformOrganize()
         }
         else
         {
-            // [新增] 安全删除逻辑
-            // 数量为 0 的物品，调用游戏原生函数进行析构和链表移除
+            // Count == 0, 调用游戏删除函数
             SafeDeleteItem(charBase, items[i].Ptr);
-            // 此时 items[i].Ptr 指向的内存已无效，不可再访问
         }
     }
 
     // 5. 最终排序
     qsort(finalItems, finalCount, sizeof(SortItemNode), CompareItems);
 
-    // 6. 写回
+    // 6. 写回背包
     for (int i = 0; i < 50; i++)
     {
         slotArray[i] = -1;
@@ -211,24 +227,27 @@ void PerformOrganize()
         slotArray[i] = finalItems[i].Index;
     }
 
-    // 7. 播放声音提示成功
+    // 7. 提示音效
     MessageBeep(MB_OK);
 }
+
+// ---------------------------------------------------------
+// 线程与初始化
+// ---------------------------------------------------------
 
 DWORD WINAPI InventoryMonitorThread(LPVOID lpParam)
 {
     while (g_bMonitorThreadRunning)
-    { // [优化] 使用全局标志控制循环
+    {
         Sleep(100);
 
-        // 检查配置开关
         if (g_pk_config.inventory_sort)
         {
-            // Ctrl + \ (VK_OEM_5)
+            // 快捷键: Ctrl + \ (VK_OEM_5)
             if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) && (GetAsyncKeyState(0xDC) & 0x8000))
             {
                 PerformOrganize();
-                Sleep(500);
+                Sleep(500); // 防抖
             }
         }
     }
@@ -237,14 +256,30 @@ DWORD WINAPI InventoryMonitorThread(LPVOID lpParam)
 
 void pk_inventory_init(int game_version)
 {
-    if (game_version != 105)
-        return;
 
-    // 创建线程
+    // 1. 根据版本设置地址
+    if (game_version == 105)
+    {
+        g_Addr_GetCharInfo = 0x004892D0;
+        g_Addr_GlobalVar = 0x005585C0;
+        g_Addr_DeleteItem = 0x004CF550;
+    }
+    else if (game_version == 201)
+    {
+        g_Addr_GetCharInfo = 0x004987F0; // From your 2.01 info
+        g_Addr_GlobalVar = 0x00589540;   // From your 2.01 info
+        g_Addr_DeleteItem = 0x004E4230;  // From your 2.01 info (sub_4E4230 inside sub_48ECB0)
+    }
+    else
+    {
+        // 不支持的版本
+        return;
+    }
+
+    // 2. 启动线程
     CreateThread(NULL, 0, InventoryMonitorThread, NULL, 0, NULL);
 }
 
-// [新增] 线程清理函数 (供 dllmain 调用)
 void pk_inventory_cleanup()
 {
     g_bMonitorThreadRunning = FALSE;
