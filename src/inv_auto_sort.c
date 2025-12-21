@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "inventory.h"
+#include "inv_auto_sort.h"
 #include "config.h"
 #include <stdio.h>
 
@@ -254,7 +254,7 @@ DWORD WINAPI InventoryMonitorThread(LPVOID lpParam)
     return 0;
 }
 
-void pk_inventory_init(int game_version)
+void Mod_inv_auto_sort_init(int game_version)
 {
 
     // 1. 根据版本设置地址

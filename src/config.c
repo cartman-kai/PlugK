@@ -67,7 +67,7 @@ void pk_config_load()
 
     // [新增] 堆叠配置
     // 读取 [General] 或 [Item] 下的配置，这里假设放在 [General] 下
-    g_pk_config.stack_potion = GetPrivateProfileIntA("General", "StackPotion", 0, ini_path);
+    // g_pk_config.stack_potion = GetPrivateProfileIntA("General", "StackPotion", 0, ini_path);
 
     // [新增] 读取背包整理开关
     g_pk_config.inventory_sort = GetPrivateProfileIntA("Inventory", "EnableSort", 0, ini_path);

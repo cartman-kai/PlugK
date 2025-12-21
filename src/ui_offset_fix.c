@@ -1,10 +1,16 @@
+/**
+ * @file ui_offset_fix.c
+ * @brief 禁用打开背包后画面右移
+ * @details 背包，角色，技能窗口都生效
+ */
+
 #include "pch.h"
-#include "ui_fix.h"
+#include "ui_offset_fix.h"
 #include "config.h"
 #include <windows.h>
 #include <stdio.h>
 
-void pk_ui_fix_init(int game_version)
+void Mod_UI_offset_fix_init(int game_version)
 {
     // 1. 检查配置，如果未开启则直接返回
     // 默认关闭，需用户手动开启

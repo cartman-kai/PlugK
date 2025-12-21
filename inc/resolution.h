@@ -1,6 +1,6 @@
 #ifndef RESOLUTION_H
 #define RESOLUTION_H
 
-void pk_resolution_init(int game_version);
+void Mod_resolution_init(int game_version);
 
 #endif

@@ -7,6 +7,6 @@
 // ItemPtrPtr: [ESI+EDI*4+4] 的地址
 int ShouldKeepItemPreCall(DWORD ItemPtrPtr);
 
-void pk_shop_init(int game_version);
+void Mod_shop_inf_stock_init(int game_version);
 
 #endif

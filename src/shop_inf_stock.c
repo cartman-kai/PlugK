@@ -1,7 +1,12 @@
-﻿// plugk_shop.c
+﻿/**
+ * @file shop_infinite_stock.c
+ * @brief 商店内回复和道具卖出不消失功能实现
+ * @details 拦截商店卖出逻辑的内存地址，执行库存减量操作。
+ */
+
 #include "pch.h"
 #include "config.h"
-#include "shop.h"
+#include "shop_inf_stock.h"
 #include <stdio.h>
 
 // ---------------------------------------------------------
@@ -126,9 +131,9 @@ void InstallJmpHook(DWORD hookAddress, DWORD targetFunction, int len)
 }
 
 // ---------------------------------------------------------
-// 初始化函数
+// 商店回复类、暗器道具 无限购买 初始化函数
 // ---------------------------------------------------------
-void pk_shop_init(int game_version)
+void Mod_shop_inf_stock_init(int game_version)
 {
     if (game_version == 105)
     {
