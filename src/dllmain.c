@@ -1,10 +1,9 @@
 ﻿// dllmain.c : 定义 DLL 应用程序的入口点。
 #include "pch.h"
 #include "config.h"
-#include "shop.h"
+#include "shop_inf_stock.h"
 #include "resolution.h"
-#include "item_stack.h"
-#include "inventory.h"
+#include "inv_auto_sort.h"
 #include <windows.h>
 #include <stdio.h>
 
@@ -70,12 +69,14 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         // 3. 根据版本应用补丁
         if (ver != VER_UNKNOWN)
         {
-            pk_shop_init(ver);
-            pk_resolution_init(ver);
-            pk_item_stack_init(ver);
-            pk_inventory_init(ver);
+            // 商店回复、暗器卖出不消失
+            Mod_shop_inf_stock_init(ver);
+            // 分辨率修改功能
+            Mod_resolution_init(ver);
+            // 背包整理
+            Mod_inv_auto_sort_init(ver);
             // [新增] 打开道具画面防抖动功能
-            pk_ui_fix_init(ver);
+            Mod_UI_offset_fix_init(ver);
         }
         else
         {

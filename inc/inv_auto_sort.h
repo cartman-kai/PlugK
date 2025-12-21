@@ -29,6 +29,6 @@ typedef struct
 } ItemObject;
 
 // 开启背包整理功能的监听线程
-void pk_inventory_init(int game_version);
+void Mod_inv_auto_sort_init(int game_version);
 
 #endif

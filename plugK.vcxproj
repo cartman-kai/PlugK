@@ -19,24 +19,28 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="config.c" />
-    <ClCompile Include="dllmain.c" />
-    <ClCompile Include="inventory.c" />
-    <ClCompile Include="item_stack.c" />
-    <ClCompile Include="pch.c" />
-    <ClCompile Include="resolution.c" />
-    <ClCompile Include="shop.c" />
-    <ClCompile Include="ui_fix.c" />
+    <ClInclude Include="inc\config.h" />
+    <ClInclude Include="inc\framework.h" />
+    <ClInclude Include="inc\inv_auto_sort.h" />
+    <ClInclude Include="inc\item_stack.h" />
+    <ClInclude Include="inc\pch.h" />
+    <ClInclude Include="inc\resolution.h" />
+    <ClInclude Include="inc\resource.h" />
+    <ClInclude Include="inc\shop_inf_stock.h" />
+    <ClInclude Include="inc\ui_offset_fix.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="config.h" />
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="inventory.h" />
-    <ClInclude Include="item_stack.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="resolution.h" />
-    <ClInclude Include="shop.h" />
-    <ClInclude Include="ui_fix.h" />
+    <ClCompile Include="src\config.c" />
+    <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\inv_auto_sort.c" />
+    <ClCompile Include="src\item_stack.c" />
+    <ClCompile Include="src\pch.c" />
+    <ClCompile Include="src\resolution.c" />
+    <ClCompile Include="src\shop_inf_stock.c" />
+    <ClCompile Include="src\ui_offset_fix.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="plugK.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -90,6 +94,10 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -115,6 +123,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir)inc</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
