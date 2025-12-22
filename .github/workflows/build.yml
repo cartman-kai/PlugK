@@ -1,0 +1,40 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v0.0.0.1" # 当你推送以 v 开头的标签（如 v0.0.0.1）时触发
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Solution
+        run: msbuild plugK.sln /p:Configuration=Release /p:Platform=x32 # 根据你的实际平台修改 x64 或 x86
+
+      - name: Prepare Release Files
+        run: |
+          mkdir release_tmp
+          copy bin\Release\plugK.dll release_tmp\
+          copy bin\Release\plugKLoader.exe release_tmp\
+          copy plugK\plugK.ini release_tmp\ # 假设 ini 在项目根目录
+
+      - name: Archive Release
+        uses: thestarking/zip-release@main
+        with:
+          type: "zip"
+          filename: "plugK_${{ github.ref_name }}.zip"
+          directory: "release_tmp"
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: plugK_${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
