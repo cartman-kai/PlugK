@@ -2,7 +2,7 @@
 //
 #pragma code_page(65001)
 
-#include "inc/resource.h"
+#include "resource1.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -28,7 +28,24 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
 
 1 TEXTINCLUDE 
 BEGIN
-    "inc/resource.h\0"
+    "resource1.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
 END
 
 2 TEXTINCLUDE 
@@ -48,6 +65,16 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+104                     ICON                    "E:\\workspace\\cartman-kai\\plugK\\loader\\res\\loader-002.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // Version
 //
 
@@ -61,20 +88,20 @@ VS_VERSION_INFO VERSIONINFO
  FILEFLAGS 0x0L
 #endif
  FILEOS 0x40004L
- FILETYPE 0x2L
+ FILETYPE 0x1L
  FILESUBTYPE 0x0L
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "CompanyName", "cartman-kai"
-            VALUE "FileDescription", "PlugK - Blade & Sword Game Enhancement Mod"
+            VALUE "CompanyName", "github.com/cartman-kai"
+            VALUE "FileDescription", "plugK mod 启动加载器"
             VALUE "FileVersion", "0.0.0.1"
-            VALUE "InternalName", "plugK.dll"
+            VALUE "InternalName", "plugKLoader.exe"
             VALUE "LegalCopyright", "Copyright (C) 2025"
-            VALUE "OriginalFilename", "plugK.dll"
-            VALUE "ProductName", "plugK"
+            VALUE "OriginalFilename", "plugKLoader.exe"
+            VALUE "ProductName", "plugKLoader"
             VALUE "ProductVersion", "0.0.0.1"
         END
     END

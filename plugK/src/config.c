@@ -10,13 +10,9 @@ void pk_config_create_default(const char *path)
     if (f)
     {
         fputs(
-            "[General]\n"
             "; PlugK Configuration File\n"
-            ";回复物品进入背包叠加 1=启用 0=关闭\n"
-            "StackPotion=0\n"
-            "\n"
             "[Inventory]\n"
-            "; 启用背包一键整理 (Ctrl+\\) 1=启用 0=关闭\n"
+            "; 一键整理功能,背包一键整理 (Ctrl+\\)  1=启用 0=关闭\n"
             "EnableSort=0\n\n"
             "[Interface]\n"
             "; 打开背包/技能/属性窗口时，保持画面不左右移动（减少晃动感）\n"
@@ -24,12 +20,12 @@ void pk_config_create_default(const char *path)
             "KeepCenter=0\n\n"
             "[Shop]\n"
             "; 设置为1，商店的回复类与暗器类物品购买后不消失 \n"
-            "ShopNoVanish=0\n\n"
+            "InfStock=0\n\n"
             "[Resolution]\n"
-            "; 启用分辨率补丁，会跳过读取 set.ini Enable=1 开启\n"
+            "; 启用分辨率补丁，需要 set.ini 中第一行设置为 ?=6  Enable=1 开启 Enable=0 关闭\n"
             "Enabled=0\n"
-            "Width=800\n"
-            "Height=600\n",
+            "Width=1280\n"
+            "Height=720\n",
             f);
         fclose(f);
     }
@@ -57,17 +53,13 @@ void pk_config_load()
     }
 
     // 商店配置
-    g_pk_config.shop_no_vanish = GetPrivateProfileIntA("Shop", "ShopNoVanish", 0, ini_path);
+    g_pk_config.shop_inf_stock = GetPrivateProfileIntA("Shop", "InfStock", 0, ini_path);
 
     // [新增] 分辨率配置
     // 如果没有配置，默认给个 800x600 保底
     g_pk_config.res_enabled = GetPrivateProfileIntA("Resolution", "Enabled", 0, ini_path);
-    g_pk_config.res_width = GetPrivateProfileIntA("Resolution", "Width", 800, ini_path);
-    g_pk_config.res_height = GetPrivateProfileIntA("Resolution", "Height", 600, ini_path);
-
-    // [新增] 堆叠配置
-    // 读取 [General] 或 [Item] 下的配置，这里假设放在 [General] 下
-    // g_pk_config.stack_potion = GetPrivateProfileIntA("General", "StackPotion", 0, ini_path);
+    g_pk_config.res_width = GetPrivateProfileIntA("Resolution", "Width", 1280, ini_path);
+    g_pk_config.res_height = GetPrivateProfileIntA("Resolution", "Height", 720, ini_path);
 
     // [新增] 读取背包整理开关
     g_pk_config.inventory_sort = GetPrivateProfileIntA("Inventory", "EnableSort", 0, ini_path);

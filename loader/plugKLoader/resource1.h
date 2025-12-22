@@ -1,8 +1,10 @@
 ﻿//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by plugK.rc
+// Microsoft Visual C++ 生成的包含文件。
+// 供 Resource.rc 使用
+//
+#define IDI_ICON1                       104
 
-// 新对象的下一组默认值
+// Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS

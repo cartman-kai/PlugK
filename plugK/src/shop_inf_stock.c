@@ -15,7 +15,7 @@
 // 默认 __cdecl 调用约定，返回结果在 EAX
 int ShouldKeepItemPreCall(DWORD ItemPtrPtr)
 {
-    if (!g_pk_config.shop_no_vanish)
+    if (!g_pk_config.shop_inf_stock)
     {
         return 0; // 配置为 0，返回 0 (执行销毁)
     }
