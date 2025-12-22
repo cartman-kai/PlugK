@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - "v0.0.0.1" # 当你推送以 v 开头的标签（如 v0.0.0.1）时触发
+      - "v*" # 当你推送以 v 开头的标签（如 v0.0.0.1）时触发
 
 jobs:
   build:
