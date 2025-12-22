@@ -35,10 +35,16 @@ jobs:
             Copy-Item "plugK/plugK.ini" -Destination "release_zip/"
           }
 
+      - name: Create Zip Archive
+        shell: pwsh
+        run: |
+          # 使用 PowerShell 原生指令打包，避免使用不可靠的第三方 Action
+          Compress-Archive -Path "release_zip/*" -DestinationPath "plugK_v${{ github.ref_name }}_build.zip"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           # 这里的名字是你在 Actions 页面看到的下载项名称
-          name: plugK_v${{ github.ref_name }}_build # 下载后的文件名
-          path: plugK_Release/ # 直接上传整个文件夹
+          name: plugK-Binary-Package
+          path: "*.zip"
           retention-days: 5 # 产物保留 5 天，节省你的 GitHub 存储空间
