@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
 #pragma code_page(65001)
 
@@ -70,7 +70,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-104                     ICON                    "E:\\workspace\\cartman-kai\\plugK\\loader\\res\\loader-002.ico"
+104                     ICON                    "loader-002.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
