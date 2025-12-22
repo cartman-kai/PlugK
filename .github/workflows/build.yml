@@ -16,7 +16,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Build Solution
-        run: msbuild plugK.sln /p:Configuration=Release /p:Platform=x32 # 根据你的实际平台修改 x64 或 x86
+        run: msbuild plugK.sln /p:Configuration=Release /p:Platform=x86 # 根据你的实际平台修改 x64 或 x86
 
       - name: Prepare Release Files
         run: |
@@ -26,11 +26,8 @@ jobs:
           copy plugK\plugK.ini release_tmp\ # 假设 ini 在项目根目录
 
       - name: Archive Release
-        uses: thestarking/zip-release@main
-        with:
-          type: "zip"
-          filename: "plugK_${{ github.ref_name }}.zip"
-          directory: "release_tmp"
+        run: |
+          Compress-Archive -Path release_tmp\* -DestinationPath plugK_${{ github.ref_name }}.zip
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
