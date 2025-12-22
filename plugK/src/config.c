@@ -19,7 +19,7 @@ void pk_config_create_default(const char *path)
             "; 1=开启(画面居中) 0=关闭(默认，画面右移)\n"
             "KeepCenter=0\n\n"
             "[Shop]\n"
-            "; 设置为1，商店的回复类与暗器类物品购买后不消失 \n"
+            "; 设置为1 商店的回复类与暗器类物品购买后不消失 \n"
             "InfStock=0\n\n"
             "[Resolution]\n"
             "; 启用分辨率补丁，需要 set.ini 中第一行设置为 ?=6  Enable=1 开启 Enable=0 关闭\n"
