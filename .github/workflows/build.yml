@@ -27,12 +27,12 @@ jobs:
 
           # 拷贝编译产物 (请根据你项目的实际生成路径检查这些路径)
           # 这里的路径假设你的输出目录配置为 $(SolutionDir)bin\$(Configuration)\
-          Copy-Item "bin/Release/plugK.dll" -Destination "release_zip/"
-          Copy-Item "bin/Release/plugKLoader.exe" -Destination "release_zip/"
+          Copy-Item "bin/Win32/Release/plugK.dll" -Destination "release_zip/"
+          Copy-Item "bin/Win32/Release/plugKLoader.exe" -Destination "release_zip/"
 
           # 如果根目录下有 ini 文件也一并考入
-          if (Test-Path "plugK.ini") {
-            Copy-Item "plugK.ini" -Destination "release_zip/"
+          if (Test-Path "plugK/plugK.ini") {
+            Copy-Item "plugK/plugK.ini" -Destination "release_zip/"
           }
 
       - name: Create Zip Archive
