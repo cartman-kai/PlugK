@@ -170,6 +170,6 @@ int main()
     CloseHandle(pi.hProcess);
 
     // 稍作延时后退出
-    Sleep(500);
+    Sleep(300);
     return 0;
 }
