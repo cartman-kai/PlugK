@@ -25,7 +25,7 @@ void LoadConfig()
 }
 
 // 注入核心函数
-BOOL InjectDLL(PROCESS_INFORMATION* pi, const char* dllPath)
+BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
 {
     HANDLE hProcess = pi->hProcess;
     LPVOID pRemoteBuf;
@@ -80,6 +80,9 @@ BOOL InjectDLL(PROCESS_INFORMATION* pi, const char* dllPath)
 
 int main()
 {
+    // 设置控制台输出代码页为 UTF-8 (65001)
+    SetConsoleOutputCP(65001);
+
     // 设置控制台标题
     SetConsoleTitleA("PlugK 启动器");
 
@@ -122,21 +125,21 @@ int main()
 
     // 4. 以挂起模式 (Suspended) 启动游戏
     // 这样可以在游戏执行任何代码之前完成注入，防止错过初始化时机
-    STARTUPINFOA si = { 0 };
-    PROCESS_INFORMATION pi = { 0 };
+    STARTUPINFOA si = {0};
+    PROCESS_INFORMATION pi = {0};
     si.cb = sizeof(si);
 
     BOOL bRet = CreateProcessA(
-        NULL,           // 应用程序名称
-        g_targetExe,    // 命令行 (这里直接放 exe 名)
-        NULL,           // 进程安全属性
-        NULL,           // 线程安全属性
-        FALSE,          // 是否继承句柄
+        NULL,             // 应用程序名称
+        g_targetExe,      // 命令行 (这里直接放 exe 名)
+        NULL,             // 进程安全属性
+        NULL,             // 线程安全属性
+        FALSE,            // 是否继承句柄
         CREATE_SUSPENDED, // <--- 关键：挂起模式
-        NULL,           // 环境变量
-        NULL,           // 当前目录
-        &si,            // 启动信息
-        &pi             // 进程信息 (返回)
+        NULL,             // 环境变量
+        NULL,             // 当前目录
+        &si,              // 启动信息
+        &pi               // 进程信息 (返回)
     );
 
     if (!bRet)
