@@ -133,10 +133,10 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\res\loader-002.ico" />
+    <ResourceCompile Include="res\Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="res\Resource.rc" />
+    <Image Include="res\loader-002.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
