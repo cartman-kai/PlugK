@@ -10,7 +10,7 @@ static DWORD g_Addr_GetCharInfo = 0;
 static DWORD g_Addr_GlobalVar = 0;
 static DWORD g_Addr_DeleteItem = 0;
 
-// 偏移量 (两个版本一致，但为了扩展性也定义为变量)
+// 偏移量  (两个版本一致，但为了扩展性也定义为变量)
 static DWORD g_Offset_PoolPtr = 0xA0;   // 物品池指针数组
 static DWORD g_Offset_SlotArray = 0xA4; // 背包格子 Index 数组
 static DWORD g_Offset_DelSlot = 0x88;   // 删除用的临时槽位
@@ -59,12 +59,6 @@ void SafeDeleteItem(DWORD charBase, ItemObject *itemPtr)
         return;
 
     DWORD func_delete = g_Addr_DeleteItem;
-
-    // 逻辑适用于 1.05 和 2.01:
-    // 1. target_slot (Base + 0x88) = itemPtr
-    // 2. ECX = this_param (Base + 0x68)
-    // 3. call func_delete
-
     DWORD target_slot = charBase + g_Offset_DelSlot;
     DWORD this_param = charBase + g_Offset_DelMgr;
 
@@ -82,14 +76,59 @@ void SafeDeleteItem(DWORD charBase, ItemObject *itemPtr)
     }
 }
 
-BOOL IsStackable(DWORD id)
+// [更新] 检查物品是否可堆叠
+// 结合了硬编码 ID 范围和内存模板数据的双重检查
+BOOL IsStackable(ItemObject *pItem)
 {
+    if (pItem == NULL)
+        return FALSE;
+
+    DWORD id = pItem->ItemID;
+    BOOL isIdInScope = FALSE;
+
+    // 1. 初步检查：ID 是否在允许堆叠的逻辑范围内
     if (id >= 4 && id <= 15)
-        return TRUE; // 回复药
-    if (id >= 22 && id <= 23)
-        return TRUE; // 气/怒药
-    if (id >= 60 && id <= 77)
-        return TRUE; // 暗器/宝石
+        isIdInScope = TRUE; // 回复类药品
+    else if (id >= 22 && id <= 23)
+        isIdInScope = TRUE; // 召唤天兵
+    else if (id >= 60 && id <= 77)
+        isIdInScope = TRUE; // 暗器
+
+    // 如果 ID 不在范围内，直接不允许堆叠
+    if (!isIdInScope)
+        return FALSE;
+
+    // 2. 深度检查：读取内存模板数据，确认 CanStack 属性
+    // 指针链: pItem -> +0x14 (TemplateRef) -> +0x08 (TemplateData) -> +0x18 (CanStack)
+
+    __try
+    {
+        // Step 1: 获取 TemplateRef
+        DWORD ptrTemplateRef = *(DWORD *)((DWORD)pItem + 0x14);
+        if (ptrTemplateRef == 0 || IsBadReadPtr((void *)ptrTemplateRef, 16))
+            return FALSE;
+
+        // Step 2: 获取 TemplateData
+        // TemplateRef + 0x08 指向实际数据结构
+        DWORD ptrTemplateData = *(DWORD *)(ptrTemplateRef + 0x08);
+        if (ptrTemplateData == 0 || IsBadReadPtr((void *)ptrTemplateData, 0x20))
+            return FALSE;
+
+        // Step 3: 读取 CanStack 属性
+        // TemplateData + 0x18 是堆叠标记 (1=Yes, 0=No)
+        int canStackFlag = *(int *)(ptrTemplateData + 0x18);
+
+        if (canStackFlag == 1)
+        {
+            return TRUE;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        // 读取指针链发生异常，安全起见返回不可堆叠
+        return FALSE;
+    }
+
     return FALSE;
 }
 
@@ -169,7 +208,9 @@ void PerformOrganize()
     {
         if (items[i].Count == 0)
             continue;
-        if (!IsStackable(items[i].ID))
+
+        // [修改] 传入物品对象指针进行检查
+        if (!IsStackable(items[i].Ptr))
             continue;
 
         for (int j = i + 1; j < validCount; j++)
@@ -177,6 +218,10 @@ void PerformOrganize()
             if (items[j].ID != items[i].ID)
                 break;
             if (items[j].Count == 0)
+                continue;
+
+            // 确保第二个物品也是可堆叠的 (理论上同ID应该属性相同，但双重检查更安全)
+            if (!IsStackable(items[j].Ptr))
                 continue;
 
             int space = 9 - (int)items[i].Count;
@@ -256,7 +301,6 @@ DWORD WINAPI InventoryMonitorThread(LPVOID lpParam)
 
 void Mod_inv_auto_sort_init(int game_version)
 {
-
     // 1. 根据版本设置地址
     if (game_version == 105)
     {
@@ -266,13 +310,12 @@ void Mod_inv_auto_sort_init(int game_version)
     }
     else if (game_version == 201)
     {
-        g_Addr_GetCharInfo = 0x004987F0; // From your 2.01 info
-        g_Addr_GlobalVar = 0x00589540;   // From your 2.01 info
-        g_Addr_DeleteItem = 0x004E4230;  // From your 2.01 info (sub_4E4230 inside sub_48ECB0)
+        g_Addr_GetCharInfo = 0x004987F0;
+        g_Addr_GlobalVar = 0x00589540;
+        g_Addr_DeleteItem = 0x004E4230;
     }
     else
     {
-        // 不支持的版本
         return;
     }
 
