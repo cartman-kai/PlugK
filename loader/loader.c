@@ -80,9 +80,6 @@ BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
 
 int main()
 {
-    // 设置控制台输出代码页为 UTF-8 (65001)
-    SetConsoleOutputCP(65001);
-
     // 设置控制台标题
     SetConsoleTitleA("PlugK 启动器");
 

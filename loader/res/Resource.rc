@@ -65,16 +65,6 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Icon
-//
-
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
-104                     ICON                    "loader-002.ico"
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Version
 //
 
@@ -97,12 +87,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "github.com/cartman-kai"
             VALUE "FileDescription", "plugK mod 启动加载器"
-            VALUE "FileVersion", "0.0.0.1"
+            VALUE "FileVersion", "0.0.1.0"
             VALUE "InternalName", "plugKLoader.exe"
             VALUE "LegalCopyright", "Copyright (C) 2025"
             VALUE "OriginalFilename", "plugKLoader.exe"
             VALUE "ProductName", "plugKLoader"
-            VALUE "ProductVersion", "0.0.0.1"
+            VALUE "ProductVersion", "0.0.1-alpha4"
         END
     END
     BLOCK "VarFileInfo"
@@ -110,6 +100,16 @@ BEGIN
         VALUE "Translation", 0x804, 1200
     END
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON2               ICON                    "loader-96-96.ico"
 
 #endif    // 中文(简体，中国) resources
 /////////////////////////////////////////////////////////////////////////////
