@@ -10,11 +10,16 @@ static DWORD g_Addr_GetCharInfo = 0;
 static DWORD g_Addr_GlobalVar = 0;
 static DWORD g_Addr_DeleteItem = 0;
 
-// 偏移量  (两个版本一致，但为了扩展性也定义为变量)
-static DWORD g_Offset_PoolPtr = 0xA0;   // 物品池指针数组
-static DWORD g_Offset_SlotArray = 0xA4; // 背包格子 Index 数组
-static DWORD g_Offset_DelSlot = 0x88;   // 删除用的临时槽位
-static DWORD g_Offset_DelMgr = 0x68;    // 删除用的管理器对象
+// ---------------------------------------------------------
+// 偏移量定义
+// ---------------------------------------------------------
+static DWORD g_Offset_PoolPtr = 0xA0; // 物品池指针数组
+static DWORD g_Offset_DelSlot = 0x88; // 删除用的临时槽位
+static DWORD g_Offset_DelMgr = 0x68;  // 删除用的管理器对象
+
+// [容器偏移]
+static DWORD g_Offset_InventoryArr = 0xA4; // 玩家背包格子数组 (50 int32)
+static DWORD g_Offset_StashArr = 0x1FC;    // [新增] 储藏箱格子数组 (50 int32)
 
 // 全局线程控制标记
 volatile BOOL g_bMonitorThreadRunning = TRUE;
@@ -76,7 +81,7 @@ void SafeDeleteItem(DWORD charBase, ItemObject *itemPtr)
     }
 }
 
-// [更新] 检查物品是否可堆叠
+// 检查物品是否可堆叠
 // 结合了硬编码 ID 范围和内存模板数据的双重检查
 BOOL IsStackable(ItemObject *pItem)
 {
@@ -156,17 +161,19 @@ int CompareItems(const void *a, const void *b)
 }
 
 // ---------------------------------------------------------
-// 核心整理逻辑
+// 核心整理逻辑 (通用版)
+// 参数: targetArrayOffset - 容器数组在角色内存中的偏移量 (0xA4 或 0x1FC)
 // ---------------------------------------------------------
-void PerformOrganize()
+void PerformOrganize(DWORD targetArrayOffset)
 {
     DWORD charBase = GetCharacterBase();
     if (charBase == 0)
         return;
 
-    // 获取关键指针
-    int *slotArray = (int *)(charBase + g_Offset_SlotArray);
+    // 获取容器数组指针 (背包 或 储藏箱)
+    int *slotArray = (int *)(charBase + targetArrayOffset);
 
+    // 获取物品池指针 (所有容器共用同一个物品池)
     // charBase + 0xA0 存放的是指向 "指针数组" 的指针
     DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
     if (poolAddress == 0)
@@ -209,7 +216,7 @@ void PerformOrganize()
         if (items[i].Count == 0)
             continue;
 
-        // [修改] 传入物品对象指针进行检查
+        // 检查是否可堆叠
         if (!IsStackable(items[i].Ptr))
             continue;
 
@@ -220,7 +227,7 @@ void PerformOrganize()
             if (items[j].Count == 0)
                 continue;
 
-            // 确保第二个物品也是可堆叠的 (理论上同ID应该属性相同，但双重检查更安全)
+            // 确保第二个物品也是可堆叠的
             if (!IsStackable(items[j].Ptr))
                 continue;
 
@@ -262,7 +269,7 @@ void PerformOrganize()
     // 5. 最终排序
     qsort(finalItems, finalCount, sizeof(SortItemNode), CompareItems);
 
-    // 6. 写回背包
+    // 6. 写回容器 (背包 或 储藏箱)
     for (int i = 0; i < 50; i++)
     {
         slotArray[i] = -1;
@@ -288,11 +295,22 @@ DWORD WINAPI InventoryMonitorThread(LPVOID lpParam)
 
         if (g_pk_config.inventory_sort)
         {
-            // 快捷键: Ctrl + \ (VK_OEM_5)
-            if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) && (GetAsyncKeyState(0xDC) & 0x8000))
+            BOOL ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+
+            if (ctrlPressed)
             {
-                PerformOrganize();
-                Sleep(500); // 防抖
+                // 快捷键: Ctrl + \ (VK_OEM_5) -> 整理背包
+                if (GetAsyncKeyState(VK_OEM_5) & 0x8000)
+                {
+                    PerformOrganize(g_Offset_InventoryArr);
+                    Sleep(500); // 防抖
+                }
+                // 快捷键: Ctrl + [ (VK_OEM_4) -> 整理储藏箱
+                else if (GetAsyncKeyState(VK_OEM_4) & 0x8000)
+                {
+                    PerformOrganize(g_Offset_StashArr);
+                    Sleep(500); // 防抖
+                }
             }
         }
     }

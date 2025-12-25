@@ -23,6 +23,9 @@
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="res\resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res\Resource.rc">
@@ -30,7 +33,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\loader-002.ico">
+    <Image Include="loader-96-96.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\loader-96-96.ico">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>
