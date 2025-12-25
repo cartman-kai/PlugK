@@ -12,7 +12,7 @@ void pk_config_create_default(const char *path)
         fputs(
             "; PlugK Configuration File\n"
             "[Inventory]\n"
-            "; 一键整理功能,背包一键整理 (Ctrl+\\)  1=启用 0=关闭\n"
+            "; 一键整理功能, 1=启用 0=关闭, 背包整理 Ctrl+\\ 储物箱整理 Ctrl+[ \n"
             "EnableSort=0\n\n"
             "[Interface]\n"
             "; 打开背包/技能/属性窗口时，保持画面不左右移动（减少晃动感）\n"
