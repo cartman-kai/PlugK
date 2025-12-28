@@ -2,59 +2,159 @@
 #include "shop_optimization.h"
 #include "config.h"
 #include <windows.h>
-#include <stdlib.h> // for rand()
+#include <stdlib.h> // for rand(), qsort()
 
 // ---------------------------------------------------------
 // 全局地址 (v1.05)
 // ---------------------------------------------------------
-static DWORD g_Addr_ShopHook1 = 0x004536BF;     // 第一次设置数量逻辑
-static DWORD g_Addr_ShopHook1_Ret = 0x004536D9; // 跳回处
+// 1. 商店数量随机化 Hook
+static DWORD g_Addr_ShopHook1 = 0x004536BF;
+static DWORD g_Addr_ShopHook1_Ret = 0x004536D9;
+static DWORD g_Addr_ShopHook2 = 0x00453AE2;
+static DWORD g_Addr_ShopHook2_Ret = 0x00453AFC;
 
-static DWORD g_Addr_ShopHook2 = 0x00453AE2;     // 第二次设置数量逻辑
-static DWORD g_Addr_ShopHook2_Ret = 0x00453AFC; // 跳回处
+// 2. 物品模板堆叠补丁 Hook
+static DWORD g_Addr_TemplateHook = 0x004D07FE;
+static DWORD g_Addr_TemplateRet = 0x004D0804;
+static DWORD g_Addr_TableCount = 0x00548340;
+static DWORD g_Addr_TablePtr = 0x00548344;
 
-static DWORD g_Addr_TemplateHook = 0x004D07FE; // 物品模板加载结束处 (add esp, 2824h)
-static DWORD g_Addr_TemplateRet = 0x004D0804;  // retn 10h
+// 3. [新增] 商店排序 Hook
+// 00453A4A: mov large fs:0, ecx (7 bytes)
+static DWORD g_Addr_ShopSortHook = 0x00453A4A;
+// Hook 覆盖了 7 字节，后续指令是 add esp, 60h; retn 4
+// 我们将在 Trampoline 中手动补全这些逻辑
 
-// 内存数据表地址
-static DWORD g_Addr_TableCount = 0x00548340; // 物品总数指针
-static DWORD g_Addr_TablePtr = 0x00548344;   // 物品索引表指针
+// ---------------------------------------------------------
+// 辅助结构体：用于排序
+// ---------------------------------------------------------
+typedef struct
+{
+    DWORD SlotIndex; // 原始格子索引 (调试用)
+    DWORD ItemPtr;   // 物品对象指针
+    DWORD ItemID;    // 物品ID
+    DWORD ItemCount; // 物品数量
+} ShopSortNode;
+
+// ---------------------------------------------------------
+// 排序比较函数
+// ---------------------------------------------------------
+int CompareShopItems(const void *a, const void *b)
+{
+    ShopSortNode *itemA = (ShopSortNode *)a;
+    ShopSortNode *itemB = (ShopSortNode *)b;
+
+    // 规则 1: 分组
+    // Group 1: ID > 15 (装备、宝石等)
+    // Group 2: ID <= 15 (消耗品、药水)
+    int groupA = (itemA->ItemID > 15) ? 1 : 2;
+    int groupB = (itemB->ItemID > 15) ? 1 : 2;
+
+    // 如果组别不同，Group 1 排在 Group 2 前面
+    if (groupA != groupB)
+    {
+        return groupA - groupB; // 1 - 2 = -1 (A在前)
+    }
+
+    // 如果组别相同
+    if (groupA == 1)
+    {
+        // Group 1 (装备): ID 从大到小 (Descending)
+        if (itemA->ItemID != itemB->ItemID)
+        {
+            return (int)itemB->ItemID - (int)itemA->ItemID;
+        }
+    }
+    else
+    {
+        // Group 2 (消耗品): ID 从小到大 (Ascending)
+        if (itemA->ItemID != itemB->ItemID)
+        {
+            return (int)itemA->ItemID - (int)itemB->ItemID;
+        }
+    }
+
+    // 如果 ID 相同，按照数量从大到小 (Descending)
+    if (itemA->ItemCount != itemB->ItemCount)
+    {
+        return (int)itemB->ItemCount - (int)itemA->ItemCount;
+    }
+
+    return 0;
+}
+
+// ---------------------------------------------------------
+// 执行商店排序逻辑 (C函数)
+// ---------------------------------------------------------
+void PerformShopSort(DWORD shopAddress)
+{
+    if (shopAddress == 0 || IsBadReadPtr((void *)shopAddress, 0xC8))
+        return;
+
+    // 商店结构：+0x00 标识, +0x04 开始是 50 个指针
+    DWORD *pSlotArray = (DWORD *)(shopAddress + 0x04);
+
+    ShopSortNode items[50];
+    int validCount = 0;
+
+    // 1. 读取有效物品
+    for (int i = 0; i < 50; i++)
+    {
+        DWORD itemPtr = pSlotArray[i];
+
+        if (itemPtr != 0 && !IsBadReadPtr((void *)itemPtr, 0x20))
+        {
+            // 读取物品 ID (+0x18) 和 数量 (+0x1C)
+            DWORD id = *(DWORD *)(itemPtr + 0x18);
+            DWORD count = *(DWORD *)(itemPtr + 0x1C);
+
+            items[validCount].SlotIndex = i;
+            items[validCount].ItemPtr = itemPtr;
+            items[validCount].ItemID = id;
+            items[validCount].ItemCount = count;
+            validCount++;
+        }
+    }
+
+    if (validCount == 0)
+        return;
+
+    // 2. 排序
+    qsort(items, validCount, sizeof(ShopSortNode), CompareShopItems);
+
+    // 3. 写回商店内存
+    // 先清空
+    for (int i = 0; i < 50; i++)
+    {
+        pSlotArray[i] = 0;
+    }
+    // 填入排序后的指针
+    for (int i = 0; i < validCount; i++)
+    {
+        pSlotArray[i] = items[i].ItemPtr;
+    }
+}
 
 // ---------------------------------------------------------
 // 内存补丁逻辑：修改回复药为可堆叠
 // ---------------------------------------------------------
 void PatchItemStackability()
 {
-    // 1. 获取物品表信息
     DWORD count = *(DWORD *)g_Addr_TableCount;
     DWORD tableBase = *(DWORD *)g_Addr_TablePtr;
-
     if (count == 0 || tableBase == 0)
         return;
-
-    // 2. 遍历所有物品模板
-    // 索引表结构: 每个条目 16 字节 (4个 DWORD)
-    // +0: ?
-    // +4: ?
-    // +8: ItemDataPtr (指向实际数据)
-    // +12: ?
 
     for (DWORD i = 0; i < count; i++)
     {
         DWORD entryAddress = tableBase + (i * 16);
-
-        // 读取 ItemDataPtr
         DWORD itemDataPtr = *(DWORD *)(entryAddress + 8);
         if (itemDataPtr == 0 || IsBadReadPtr((void *)itemDataPtr, 0x20))
             continue;
 
-        // 读取 ItemID (偏移 +4)
         DWORD itemID = *(DWORD *)(itemDataPtr + 4);
-
-        // 3. 判断是否为回复类药品 (ID 4 - 15)
         if (itemID >= 4 && itemID <= 15)
         {
-            // 修改 CanStack (偏移 +0x18) 为 1
             int *pCanStack = (int *)(itemDataPtr + 0x18);
             *pCanStack = 1;
         }
@@ -67,94 +167,101 @@ void PatchItemStackability()
 __declspec(naked) void TemplateLoad_Trampoline()
 {
     __asm {
-        // [执行被覆盖的指令]
-        // 004D07FE: add esp, 2824h
         add esp, 0x2824
-
-        // [插入逻辑]
-        // 保存寄存器 (虽然 PatchItemStackability 主要是C代码，编译器会处理，但 naked 函数还是小心为妙)
         pushad
         call PatchItemStackability
         popad
-
-                    // [执行返回]
-                    // 原指令是 retn 10h，我们不能直接 jmp 回去，因为 retn 会直接结束函数
-                    // 这里直接模拟 retn 10h
         ret 0x10
     }
 }
 
 // ---------------------------------------------------------
-// Shop Quantity Hook Logic (通用逻辑)
-// 输入: EAX (Item Type)
-// 输出: EDI (Calculated Quantity)
+// Shop Quantity Calculation
 // ---------------------------------------------------------
 int CalculateShopQuantity(int itemType)
 {
-    // 逻辑：
-    // Type 10 (回复药) 或 Type 20-29 (暗器) -> 随机 1-9
     if (itemType == 10 || (itemType >= 20 && itemType <= 29))
     {
-        // rand() 返回 0..RAND_MAX
         return (rand() % 9) + 1;
     }
     return 1;
 }
 
 // ---------------------------------------------------------
-// Shop Hook 1 Trampoline
+// Shop Hook 1 & 2 Trampolines (Quantity)
 // ---------------------------------------------------------
 __declspec(naked) void ShopQtyHook1_Trampoline()
 {
     __asm {
-        // 此时 EAX = Item Type
-
-        // 保存上下文 (CalculateShopQuantity 会修改寄存器)
         push eax
         push ecx
         push edx
-                    // EDI 是我们要修改的目标，不需要保存值，但需要作为结果被修改
-
-                    // 调用 C 函数计算数量
-        push eax // 参数 itemType
+        push eax 
         call CalculateShopQuantity
-        add esp, 4 // 平栈
-
-        // EAX 现在是返回值 (Quantity)
-        mov edi, eax // 将结果存入 EDI
-
-            // 恢复上下文
+        add esp, 4
+        mov edi, eax 
         pop edx
         pop ecx
         pop eax
-
-                        // 跳过原程序的判断逻辑，直接去应用数量的地方
         jmp [g_Addr_ShopHook1_Ret]
     }
 }
 
-// ---------------------------------------------------------
-// Shop Hook 2 Trampoline
-// ---------------------------------------------------------
 __declspec(naked) void ShopQtyHook2_Trampoline()
 {
     __asm {
-        // 逻辑同上
         push eax
         push ecx
         push edx
-        
         push eax 
         call CalculateShopQuantity
         add esp, 4
-        
         mov edi, eax 
-        
         pop edx
         pop ecx
         pop eax
-
         jmp [g_Addr_ShopHook2_Ret]
+    }
+}
+
+// ---------------------------------------------------------
+// [新增] Shop Sort Hook Trampoline
+// ---------------------------------------------------------
+__declspec(naked) void ShopSortHook_Trampoline()
+{
+    __asm {
+        // 保存所有寄存器状态
+        pushad
+
+            // 获取商店地址
+            // 根据您的调研：在执行 00453A4A 时，[esp+4] 保存了商店地址
+            // 但是我们刚才执行了 pushad (8个寄存器 * 4 = 32字节 = 0x20)
+            // 所以原本的 esp 现在变成了 esp + 0x20
+            // 原本的 [esp+4] 现在就是 [esp + 0x20 + 0x04] = [esp + 0x24]
+        
+        mov eax, [esp + 0x24]
+
+        // 调用排序函数
+        push eax // 参数 shopAddress
+        call PerformShopSort
+        add esp, 4
+
+        // 恢复寄存器
+        popad
+
+            // [执行被覆盖的指令 & 还原函数返回逻辑]
+            // 原指令: 00453A4A: mov large fs:0, ecx (7 bytes)
+            // 后续指令: 00453A51: add esp, 60h
+            // 后续指令: 00453A54: retn 4
+
+            // 1. 执行被覆盖的 FS 操作
+        mov dword ptr fs:[0x0], ecx
+
+                                    // 2. 执行原函数的栈清理
+        add esp, 0x60
+
+                          // 3. 执行原函数的返回
+        ret 4
     }
 }
 
@@ -175,7 +282,7 @@ void InstallShopItemJmpHook(DWORD hookAddress, DWORD targetFunction, int len)
 }
 
 // ---------------------------------------------------------
-// Mod 商店物品优化
+// Mod 初始化
 // ---------------------------------------------------------
 void Mod_shop_opt_init(int game_version)
 {
@@ -184,15 +291,14 @@ void Mod_shop_opt_init(int game_version)
     if (!g_pk_config.optimize_shop)
         return;
 
-    // 1. Hook 物品模板加载 (使其可堆叠)
-    // Hook 点: 004D07FE (add esp, 2824h) -> 长度 6 字节
+    // 1. 模板堆叠补丁
     InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline, 6);
 
-    // 2. Hook 商店数量逻辑 1
-    // Hook 点: 004536BF (cmp eax, 14h ...) -> 长度 5 字节
+    // 2. 商店数量随机化
     InstallShopItemJmpHook(g_Addr_ShopHook1, (DWORD)ShopQtyHook1_Trampoline, 5);
-
-    // 3. Hook 商店数量逻辑 2
-    // Hook 点: 00453AE2 (cmp eax, 14h ...) -> 长度 5 字节
     InstallShopItemJmpHook(g_Addr_ShopHook2, (DWORD)ShopQtyHook2_Trampoline, 5);
+
+    // 3. [新增] 商店排序
+    // Hook 点: 00453A4A (mov large fs:0, ecx) -> 长度 7 字节
+    InstallShopItemJmpHook(g_Addr_ShopSortHook, (DWORD)ShopSortHook_Trampoline, 7);
 }
