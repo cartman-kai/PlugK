@@ -34,21 +34,23 @@ plugK 是一个基于 C 语言开发的 DLL 补丁，旨在修复原版游戏中
 ```ini
 ; PlugK Configuration File
 [Inventory]
-; 一键整理功能,背包一键整理 (Ctrl+\)  1=启用 0=关闭
-EnableSort=1
+; 一键整理功能, 1=启用 0=关闭, 背包整理 Ctrl+\ 储物箱整理 Ctrl+[ 
+EnableSort=0
 
 [Interface]
 ; 打开背包/技能/属性窗口时，保持画面不左右移动（减少晃动感）
 ; 1=开启(画面居中) 0=关闭(默认，画面右移)
-KeepCenter=1
+KeepCenter=0
 
 [Shop]
-; 设置为1，商店的回复类与暗器类物品购买后不消失 
-InfStock=1
+; 设置为1 商店的回复类与暗器类物品购买后不消失 
+InfStock=0
+; 商店物品数量随机功能 1=开启 0=关闭，开启之后药品可叠加
+OptimizeQuantity=0
 
 [Resolution]
 ; 启用分辨率补丁，需要 set.ini 中第一行设置为 ?=6  Enable=1 开启 Enable=0 关闭
-Enabled=1
-Width=1600
-Height=800
+Enabled=0
+Width=800
+Height=600
 ```
