@@ -23,6 +23,9 @@ typedef struct
     // 打开窗口时保持画面居中，不进行平移
     BOOL ui_keep_center;
 
+    // [新增] 商店物品数量优化 (随机1-9 & 药水堆叠)
+    BOOL optimize_shop;
+
 } PK_CONFIG;
 
 extern PK_CONFIG g_pk_config;

@@ -20,12 +20,15 @@ void pk_config_create_default(const char *path)
             "KeepCenter=0\n\n"
             "[Shop]\n"
             "; 设置为1 商店的回复类与暗器类物品购买后不消失 \n"
-            "InfStock=0\n\n"
+            "InfStock=0\n"
+            "; 商店物品数量随机功能 1=开启 0=关闭，开启之后药品可叠加\n"
+            "OptimizeQuantity=0\n"
+            "\n"
             "[Resolution]\n"
             "; 启用分辨率补丁，需要 set.ini 中第一行设置为 ?=6  Enable=1 开启 Enable=0 关闭\n"
             "Enabled=0\n"
-            "Width=1280\n"
-            "Height=720\n",
+            "Width=800\n"
+            "Height=600\n",
             f);
         fclose(f);
     }
@@ -58,12 +61,15 @@ void pk_config_load()
     // [新增] 分辨率配置
     // 如果没有配置，默认给个 800x600 保底
     g_pk_config.res_enabled = GetPrivateProfileIntA("Resolution", "Enabled", 0, ini_path);
-    g_pk_config.res_width = GetPrivateProfileIntA("Resolution", "Width", 1280, ini_path);
-    g_pk_config.res_height = GetPrivateProfileIntA("Resolution", "Height", 720, ini_path);
+    g_pk_config.res_width = GetPrivateProfileIntA("Resolution", "Width", 800, ini_path);
+    g_pk_config.res_height = GetPrivateProfileIntA("Resolution", "Height", 600, ini_path);
 
     // [新增] 读取背包整理开关
     g_pk_config.inventory_sort = GetPrivateProfileIntA("Inventory", "EnableSort", 0, ini_path);
 
     // [新增] 打开背包界面不晃动
     g_pk_config.ui_keep_center = GetPrivateProfileIntA("Interface", "KeepCenter", 0, ini_path);
+
+    // [新增] 商店物品数量随机
+    g_pk_config.optimize_shop = GetPrivateProfileIntA("Shop", "OptimizeQuantity", 0, ini_path);
 }

@@ -4,6 +4,7 @@
 #include "shop_inf_stock.h"
 #include "resolution.h"
 #include "inv_auto_sort.h"
+#include "shop_optimization.h"
 #include <windows.h>
 #include <stdio.h>
 
@@ -77,6 +78,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             Mod_inv_auto_sort_init(ver);
             // [新增] 打开道具画面防抖动功能
             Mod_UI_offset_fix_init(ver);
+            // 商店物品优化
+            Mod_shop_opt_init(ver);
         }
         else
         {
