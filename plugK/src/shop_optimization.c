@@ -176,6 +176,27 @@ __declspec(naked) void TemplateLoad_Trampoline()
 }
 
 // ---------------------------------------------------------
+// Template Load Hook Trampoline 2.01 version
+// ---------------------------------------------------------
+__declspec(naked) void TemplateLoad_Trampoline_201()
+{
+    __asm {
+        // [v2.01 指令]
+        // 004E54F4: add esp, 2824h
+        add esp, 0x2824
+
+        // 插入逻辑
+        pushad
+        call PatchItemStackability
+        popad;
+
+        // [v2.01 返回]
+        // 原指令是 retn 14h (比 1.05 多 4 字节)
+        ret 0x14
+    }
+}
+
+// ---------------------------------------------------------
 // Shop Quantity Calculation
 // ---------------------------------------------------------
 int CalculateShopQuantity(int itemType)
@@ -286,19 +307,113 @@ void InstallShopItemJmpHook(DWORD hookAddress, DWORD targetFunction, int len)
 // ---------------------------------------------------------
 void Mod_shop_opt_init(int game_version)
 {
-    if (game_version != 105)
-        return;
     if (!g_pk_config.optimize_shop)
         return;
 
-    // 1. 模板堆叠补丁
-    InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline, 6);
+    // 默认置空
+    g_Addr_TableCount = 0;
+    g_Addr_TablePtr = 0;
+    g_Addr_TemplateHook = 0;
+    g_Addr_ShopHook1 = 0;
+    g_Addr_ShopHook2 = 0;
+    g_Addr_ShopSortHook = 0;
 
-    // 2. 商店数量随机化
-    InstallShopItemJmpHook(g_Addr_ShopHook1, (DWORD)ShopQtyHook1_Trampoline, 5);
-    InstallShopItemJmpHook(g_Addr_ShopHook2, (DWORD)ShopQtyHook2_Trampoline, 5);
+    int hook1_len = 0;
+    int hook2_len = 0;
+    int template_len = 0;
+    int sort_len = 0;
 
-    // 3. [新增] 商店排序
-    // Hook 点: 00453A4A (mov large fs:0, ecx) -> 长度 7 字节
-    InstallShopItemJmpHook(g_Addr_ShopSortHook, (DWORD)ShopSortHook_Trampoline, 7);
+    if (game_version == 105)
+    {
+        // --- v1.05 地址 ---
+        g_Addr_TableCount = 0x00548340;
+        g_Addr_TablePtr = 0x00548344;
+
+        g_Addr_TemplateHook = 0x004D07FE;
+        g_Addr_TemplateRet = 0x004D0804; // retn 10h
+        template_len = 6;                // add esp, 2824h
+
+        g_Addr_ShopHook1 = 0x004536BF;
+        g_Addr_ShopHook1_Ret = 0x004536D9;
+        hook1_len = 5;
+
+        g_Addr_ShopHook2 = 0x00453AE2;
+        g_Addr_ShopHook2_Ret = 0x00453AFC;
+        hook2_len = 5;
+
+        g_Addr_ShopSortHook = 0x00453A4A;
+        sort_len = 7;
+    }
+
+    else if (game_version == 201)
+    {
+        // --- v2.01 地址 (新增) ---
+
+        // 1. 物品表信息
+        g_Addr_TableCount = 0x005788D0;
+        g_Addr_TablePtr = 0x005788D4;
+
+        // 2. 模板加载 Hook
+        // 004E54F4: add esp, 2824h (6 bytes)
+        // 004E54FA: retn 14h
+        g_Addr_TemplateHook = 0x004E54F4;
+        g_Addr_TemplateRet = 0x004E54FA;
+        template_len = 6;
+
+        // 3. 商店数量随机化 Hook 1
+        // 0045F7EF: cmp eax, 14h (3 bytes)
+        // 0045F7F2: jl short loc_45F809 (2 bytes) -> Total 5 bytes
+        // Return to 0045F809 (push edi)
+        g_Addr_ShopHook1 = 0x0045F7EF;
+        g_Addr_ShopHook1_Ret = 0x0045F809;
+        hook1_len = 5;
+
+        // 4. 商店数量随机化 Hook 2
+        g_Addr_ShopHook2 = 0x0045FC12;
+        g_Addr_ShopHook2_Ret = 0x0045FC2C;
+        hook2_len = 5;
+
+        // 5. 商店排序 Hook
+        g_Addr_ShopSortHook = 0x0045FB7A;
+        sort_len = 7;
+    }
+    else
+    {
+        return; // 不支持的版本
+    }
+
+    // 1. 模板堆叠补丁 (v1.05 & v2.01)
+    if (g_Addr_TemplateHook != 0)
+    {
+        // 注意：v2.01 的 TemplateRet 是 retn 14h，v1.05 是 retn 10h
+        // TemplateLoad_Trampoline 需要微调以支持动态 retn，或者针对 2.01 写个新的 trampoline
+        // 简单地为 v2.01 写一个单独的 Trampoline。
+
+        if (game_version == 201)
+        {
+            InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline_201, template_len);
+        }
+        else
+        {
+            InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline, template_len);
+        }
+    }
+
+    // 2. 商店数量 Hook 1
+    if (g_Addr_ShopHook1 != 0)
+    {
+        InstallShopItemJmpHook(g_Addr_ShopHook1, (DWORD)ShopQtyHook1_Trampoline, hook1_len);
+    }
+
+    // 3. 商店数量 Hook 2
+    if (g_Addr_ShopHook2 != 0)
+    {
+        InstallShopItemJmpHook(g_Addr_ShopHook2, (DWORD)ShopQtyHook2_Trampoline, hook2_len);
+    }
+
+    // 4. 商店排序 Hook
+    if (g_Addr_ShopSortHook != 0)
+    {
+        InstallShopItemJmpHook(g_Addr_ShopSortHook, (DWORD)ShopSortHook_Trampoline, sort_len);
+    }
 }
