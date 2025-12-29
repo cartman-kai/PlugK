@@ -307,9 +307,6 @@ void InstallShopItemJmpHook(DWORD hookAddress, DWORD targetFunction, int len)
 // ---------------------------------------------------------
 void Mod_shop_opt_init(int game_version)
 {
-    if (!g_pk_config.optimize_shop)
-        return;
-
     // 默认置空
     g_Addr_TableCount = 0;
     g_Addr_TablePtr = 0;
@@ -383,7 +380,7 @@ void Mod_shop_opt_init(int game_version)
     }
 
     // 1. 模板堆叠补丁 (v1.05 & v2.01)
-    if (g_Addr_TemplateHook != 0)
+    if (g_Addr_TemplateHook != 0 && g_pk_config.shop_item_count)
     {
         // 注意：v2.01 的 TemplateRet 是 retn 14h，v1.05 是 retn 10h
         // TemplateLoad_Trampoline 需要微调以支持动态 retn，或者针对 2.01 写个新的 trampoline
@@ -400,19 +397,19 @@ void Mod_shop_opt_init(int game_version)
     }
 
     // 2. 商店数量 Hook 1
-    if (g_Addr_ShopHook1 != 0)
+    if (g_Addr_ShopHook1 != 0 && g_pk_config.shop_item_count)
     {
         InstallShopItemJmpHook(g_Addr_ShopHook1, (DWORD)ShopQtyHook1_Trampoline, hook1_len);
     }
 
     // 3. 商店数量 Hook 2
-    if (g_Addr_ShopHook2 != 0)
+    if (g_Addr_ShopHook2 != 0 && g_pk_config.shop_item_count)
     {
         InstallShopItemJmpHook(g_Addr_ShopHook2, (DWORD)ShopQtyHook2_Trampoline, hook2_len);
     }
 
     // 4. 商店排序 Hook
-    if (g_Addr_ShopSortHook != 0)
+    if (g_Addr_ShopSortHook != 0 && g_pk_config.shop_sort)
     {
         InstallShopItemJmpHook(g_Addr_ShopSortHook, (DWORD)ShopSortHook_Trampoline, sort_len);
     }

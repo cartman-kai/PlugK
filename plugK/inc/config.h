@@ -24,7 +24,10 @@ typedef struct
     BOOL ui_keep_center;
 
     // [新增] 商店物品数量优化 (随机1-9 & 药水堆叠)
-    BOOL optimize_shop;
+    BOOL shop_item_count;
+
+    // 商店物品排序
+    BOOL shop_sort;
 
 } PK_CONFIG;
 
