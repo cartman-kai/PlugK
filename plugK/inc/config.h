@@ -29,6 +29,9 @@ typedef struct
     // 商店物品排序
     BOOL shop_sort;
 
+    // [新增] 扩展储物箱 (大箱子)
+    BOOL stash_ext_enabled;
+
 } PK_CONFIG;
 
 extern PK_CONFIG g_pk_config;

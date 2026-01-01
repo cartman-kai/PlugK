@@ -30,7 +30,10 @@ void pk_config_create_default(const char *path)
             "; 启用分辨率补丁，需要 set.ini 中第一行设置为 ?=6  Enable=1 开启 Enable=0 关闭\n"
             "Enabled=0\n"
             "Width=800\n"
-            "Height=600\n",
+            "Height=600\n"
+            "\n[Stash]\n"
+            "; 启用扩展储物箱功能 (使用 < 键切换 A/B 面)\n"
+            "EnableExt=1\n",
             f);
         fclose(f);
     }
@@ -76,4 +79,7 @@ void pk_config_load()
     g_pk_config.shop_item_count = GetPrivateProfileIntA("Shop", "OptimizeItem", 0, ini_path);
     // 商店物品排序
     g_pk_config.shop_sort = GetPrivateProfileIntA("Shop", "EnableSort", 0, ini_path);
+
+    // [新增] 读取扩展储物箱配置
+    g_pk_config.stash_ext_enabled = GetPrivateProfileIntA("Stash", "EnableExt", 1, ini_path);
 }

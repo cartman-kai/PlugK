@@ -5,6 +5,7 @@
 #include "resolution.h"
 #include "inv_auto_sort.h"
 #include "shop_optimization.h"
+#include "stash_ext.h" // 新增
 #include <windows.h>
 #include <stdio.h>
 
@@ -80,6 +81,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             Mod_UI_offset_fix_init(ver);
             // 商店物品优化
             Mod_shop_opt_init(ver);
+
+            // 扩展储物箱初始化
+            Mod_Stash_Ext_Init(ver);
         }
         else
         {
