@@ -32,7 +32,7 @@ void pk_config_create_default(const char *path)
             "Width=800\n"
             "Height=600\n"
             "\n[Stash]\n"
-            "; 启用扩展储物箱功能 (使用 < 键切换 A/B 面)\n"
+            "; 启用扩展储物箱与背包功能 Ctrl + < 键切换储物箱 A/B 面  Ctrl + > 切换背包 \n"
             "EnableExt=1\n",
             f);
         fclose(f);
