@@ -52,8 +52,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,3,0
- PRODUCTVERSION 0,0,3,0
+ FILEVERSION 0,0,4,0
+ PRODUCTVERSION 0,0,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,12 +70,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "github.com/cartman-kai"
             VALUE "FileDescription", "PlugK - Blade & Sword Game Enhancement Mod"
-            VALUE "FileVersion", "0.0.3.0"
+            VALUE "FileVersion", "0.0.4.0"
             VALUE "InternalName", "plugK.dll"
             VALUE "LegalCopyright", "Copyright (C) 2025"
             VALUE "OriginalFilename", "plugK.dll"
             VALUE "ProductName", "plugK  github.com/cartman-kai"
-            VALUE "ProductVersion", "0.0.3.0"
+            VALUE "ProductVersion", "0.0.4.0"
         END
     END
     BLOCK "VarFileInfo"

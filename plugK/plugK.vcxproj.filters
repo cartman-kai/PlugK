@@ -48,6 +48,9 @@
     <ClInclude Include="inc\stash_ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\combo_score.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
@@ -78,6 +81,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\stash_ext.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\combo_score.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

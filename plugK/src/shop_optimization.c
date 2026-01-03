@@ -25,6 +25,8 @@ static DWORD g_Addr_ShopSortHook = 0x00453A4A;
 // Hook 覆盖了 7 字节，后续指令是 add esp, 60h; retn 4
 // 我们将在 Trampoline 中手动补全这些逻辑
 
+static DWORD g_Flag_ItemCanStack = 0;
+
 // ---------------------------------------------------------
 // 辅助结构体：用于排序
 // ---------------------------------------------------------
@@ -145,6 +147,12 @@ void PatchItemStackability()
     if (count == 0 || tableBase == 0)
         return;
 
+    if (g_Flag_ItemCanStack)
+    {
+        // 已设置过，不再更新
+        return;
+    }
+
     for (DWORD i = 0; i < count; i++)
     {
         DWORD entryAddress = tableBase + (i * 16);
@@ -153,12 +161,21 @@ void PatchItemStackability()
             continue;
 
         DWORD itemID = *(DWORD *)(itemDataPtr + 4);
-        if (itemID >= 4 && itemID <= 15)
+        if (itemID >= 4 && itemID <= 15 && g_pk_config.shop_item_count)
+        {
+            int *pCanStack = (int *)(itemDataPtr + 0x18);
+            *pCanStack = 1;
+        }
+        DWORD itemType = *(DWORD *)(itemDataPtr + 8);
+        if (itemType >= 30 && itemID <= 35 && g_pk_config.enable_item_stack)
         {
             int *pCanStack = (int *)(itemDataPtr + 0x18);
             *pCanStack = 1;
         }
     }
+
+    // 设置标记，已经更新
+    g_Flag_ItemCanStack = 1;
 }
 
 // ---------------------------------------------------------
@@ -380,12 +397,11 @@ void Mod_shop_opt_init(int game_version)
     }
 
     // 1. 模板堆叠补丁 (v1.05 & v2.01)
-    if (g_Addr_TemplateHook != 0 && g_pk_config.shop_item_count)
+    if (g_Addr_TemplateHook != 0)
     {
         // 注意：v2.01 的 TemplateRet 是 retn 14h，v1.05 是 retn 10h
         // TemplateLoad_Trampoline 需要微调以支持动态 retn，或者针对 2.01 写个新的 trampoline
         // 简单地为 v2.01 写一个单独的 Trampoline。
-
         if (game_version == 201)
         {
             InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline_201, template_len);

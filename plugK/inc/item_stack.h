@@ -5,6 +5,6 @@
 #include <windows.h>
 
 // 初始化堆叠功能 (识别版本并安装 Hook)
-void pk_item_stack_init(int game_version);
+void Mod_item_stack_init(int game_version);
 
 #endif

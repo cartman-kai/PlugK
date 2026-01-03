@@ -1,11 +1,13 @@
 ﻿// dllmain.c : 定义 DLL 应用程序的入口点。
 #include "pch.h"
 #include "config.h"
+#include "item_stack.h"
 #include "shop_inf_stock.h"
 #include "resolution.h"
 #include "inv_auto_sort.h"
 #include "shop_optimization.h"
-#include "stash_ext.h" // 新增
+#include "stash_ext.h"
+#include "combo_score.h"
 #include <windows.h>
 #include <stdio.h>
 
@@ -84,6 +86,12 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 扩展储物箱初始化
             Mod_Stash_Ext_Init(ver);
+
+            // 宝石可叠加
+            Mod_item_stack_init(ver);
+
+            // 正传 1.05 程序 连招得分补正
+            // Mod_Combo_Score_Init(ver);
         }
         else
         {

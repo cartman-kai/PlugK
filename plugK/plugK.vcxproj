@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\combo_score.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\framework.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
@@ -32,6 +33,7 @@
     <ClInclude Include="inc\ui_offset_fix.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\combo_score.c" />
     <ClCompile Include="src\config.c" />
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\inv_auto_sort.c" />

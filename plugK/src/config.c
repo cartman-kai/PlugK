@@ -33,7 +33,12 @@ void pk_config_create_default(const char *path)
             "Height=600\n"
             "\n[Stash]\n"
             "; 启用扩展储物箱与背包功能 Ctrl + < 键切换储物箱 A/B 面  Ctrl + > 切换背包 \n"
-            "EnableExt=1\n",
+            "EnableExt=1\n"
+            "\n"
+            "[Item]\n"
+            "; 宝石叠加功能 1=开启 0=关闭 \n"
+            "EnableStack=0\n"
+            "\n",
             f);
         fclose(f);
     }
@@ -82,4 +87,9 @@ void pk_config_load()
 
     // [新增] 读取扩展储物箱配置
     g_pk_config.stash_ext_enabled = GetPrivateProfileIntA("Stash", "EnableExt", 1, ini_path);
+
+    // 1.05版程序，连击得分 *2
+    // g_pk_config.combo_score_fix = GetPrivateProfileIntA("ComboScore", "EnableFix", 0, ini_path);
+
+    g_pk_config.enable_item_stack = GetPrivateProfileIntA("Item", "EnableStack", 0, ini_path);
 }

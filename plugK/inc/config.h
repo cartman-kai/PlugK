@@ -32,6 +32,11 @@ typedef struct
     // [新增] 扩展储物箱 (大箱子)
     BOOL stash_ext_enabled;
 
+    BOOL combo_score_fix; // 1.05 程序连击得分补正 *2
+
+    // 物品叠加功能
+    BOOL enable_item_stack;
+
 } PK_CONFIG;
 
 extern PK_CONFIG g_pk_config;
