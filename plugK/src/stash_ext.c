@@ -436,5 +436,5 @@ void Mod_Stash_Ext_Init(int ver)
         InstallStashExtJmp(ADDR_201_EXIT_HOOK, Hook_201_Exit, &g_RetAddr_Exit, 10);
     }
 
-    CreateThread(NULL, 0, StashInputThread, NULL, 0, NULL);
+    // CreateThread(NULL, 0, StashInputThread, NULL, 0, NULL);
 }

@@ -4,8 +4,13 @@
 #include "pch.h"
 #include <windows.h>
 
-// 物品对象结构 (根据您的逆向信息)
-// 注意：未使用的字段用 padding 填充
+// [新增] 供 InputMgr 调用 整理背包
+void ExecuteInventorySortFlow();
+// 调用整理仓库
+void ExecuteStashSortFlow();
+
+// 物品对象结构
+// 根据您的逆向信息更新
 typedef struct
 {
     // 0x00 - 0x17
@@ -27,8 +32,5 @@ typedef struct
     DWORD Price;
 
 } ItemObject;
-
-// 开启背包整理功能的监听线程
-void Mod_inv_auto_sort_init(int game_version);
 
 #endif

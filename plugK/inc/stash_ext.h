@@ -4,8 +4,11 @@
 #include <windows.h>
 
 // 初始化扩展储物箱模块
-// ver: 游戏版本 (105)
 void Mod_Stash_Ext_Init(int ver);
+// 切换储物箱
+void ToggleStash();
+// 切换背包
+void ToggleInventory();
 
 // 清理资源
 void Mod_Stash_Ext_Cleanup();

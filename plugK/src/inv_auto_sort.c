@@ -18,8 +18,9 @@ static DWORD g_Offset_DelSlot = 0x88; // 删除用的临时槽位
 static DWORD g_Offset_DelMgr = 0x68;  // 删除用的管理器对象
 
 // [容器偏移]
-static DWORD g_Offset_InventoryArr = 0xA4; // 玩家背包格子数组 (50 int32)
-static DWORD g_Offset_StashArr = 0x1FC;    // [新增] 储藏箱格子数组 (50 int32)
+static DWORD g_Offset_InventoryArr = 0xA4;  // 玩家背包格子数组 (50 int32)
+static DWORD g_Offset_QuickSlotArr = 0x184; // [新增] 道具快捷栏数组 (6 int32)
+static DWORD g_Offset_StashArr = 0x1FC;     // 储藏箱格子数组 (50 int32)
 
 // 全局线程控制标记
 volatile BOOL g_bMonitorThreadRunning = TRUE;
@@ -82,7 +83,6 @@ void SafeDeleteItem(DWORD charBase, ItemObject *itemPtr)
 }
 
 // 检查物品是否可堆叠
-// 结合了硬编码 ID 范围和内存模板数据的双重检查
 BOOL IsStackable(ItemObject *pItem)
 {
     if (pItem == NULL)
@@ -93,44 +93,32 @@ BOOL IsStackable(ItemObject *pItem)
 
     // 1. 初步检查：ID 是否在允许堆叠的逻辑范围内
     if (id >= 4 && id <= 15)
-        isIdInScope = TRUE; // 回复类药品
+        isIdInScope = TRUE;
     else if (id >= 22 && id <= 23)
-        isIdInScope = TRUE; // 召唤天兵
+        isIdInScope = TRUE;
     else if (id >= 60 && id <= 77)
-        isIdInScope = TRUE; // 暗器
+        isIdInScope = TRUE;
 
-    // 如果 ID 不在范围内，直接不允许堆叠
     if (!isIdInScope)
         return FALSE;
 
-    // 2. 深度检查：读取内存模板数据，确认 CanStack 属性
-    // 指针链: pItem -> +0x14 (TemplateRef) -> +0x08 (TemplateData) -> +0x18 (CanStack)
-
+    // 2. 深度检查：读取内存模板数据
     __try
     {
-        // Step 1: 获取 TemplateRef
         DWORD ptrTemplateRef = *(DWORD *)((DWORD)pItem + 0x14);
         if (ptrTemplateRef == 0 || IsBadReadPtr((void *)ptrTemplateRef, 16))
             return FALSE;
 
-        // Step 2: 获取 TemplateData
-        // TemplateRef + 0x08 指向实际数据结构
         DWORD ptrTemplateData = *(DWORD *)(ptrTemplateRef + 0x08);
         if (ptrTemplateData == 0 || IsBadReadPtr((void *)ptrTemplateData, 0x20))
             return FALSE;
 
-        // Step 3: 读取 CanStack 属性
-        // TemplateData + 0x18 是堆叠标记 (1=Yes, 0=No)
         int canStackFlag = *(int *)(ptrTemplateData + 0x18);
-
         if (canStackFlag == 1)
-        {
             return TRUE;
-        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        // 读取指针链发生异常，安全起见返回不可堆叠
         return FALSE;
     }
 
@@ -142,27 +130,22 @@ int CompareItems(const void *a, const void *b)
     SortItemNode *itemA = (SortItemNode *)a;
     SortItemNode *itemB = (SortItemNode *)b;
 
-    // 1. ID 小 -> 大
+    // ID > Count > Level > Price
     if (itemA->ID != itemB->ID)
         return (int)itemA->ID - (int)itemB->ID;
-    // 2. 数量 大 -> 小
     if (itemA->Count != itemB->Count)
         return (int)itemB->Count - (int)itemA->Count;
-    // 3. 等级 小 -> 大
     if (itemA->Level != itemB->Level)
         return (int)itemA->Level - (int)itemB->Level;
-    // 4. 价格 低 -> 高
     if (itemA->Price > itemB->Price)
         return 1;
     if (itemA->Price < itemB->Price)
         return -1;
-
     return 0;
 }
 
 // ---------------------------------------------------------
-// 核心整理逻辑 (通用版)
-// 参数: targetArrayOffset - 容器数组在角色内存中的偏移量 (0xA4 或 0x1FC)
+// 核心整理逻辑
 // ---------------------------------------------------------
 void PerformOrganize(DWORD targetArrayOffset)
 {
@@ -170,15 +153,10 @@ void PerformOrganize(DWORD targetArrayOffset)
     if (charBase == 0)
         return;
 
-    // 获取容器数组指针 (背包 或 储藏箱)
     int *slotArray = (int *)(charBase + targetArrayOffset);
-
-    // 获取物品池指针 (所有容器共用同一个物品池)
-    // charBase + 0xA0 存放的是指向 "指针数组" 的指针
     DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
     if (poolAddress == 0)
         return;
-
     DWORD *itemPoolPtr = (DWORD *)poolAddress;
 
     SortItemNode items[50];
@@ -207,16 +185,14 @@ void PerformOrganize(DWORD targetArrayOffset)
     if (validCount == 0)
         return;
 
-    // 2. 预排序 (为了合并)
+    // 2. 预排序
     qsort(items, validCount, sizeof(SortItemNode), CompareItems);
 
-    // 3. 合并逻辑 (Stacking)
+    // 3. 合并逻辑
     for (int i = 0; i < validCount; i++)
     {
         if (items[i].Count == 0)
             continue;
-
-        // 检查是否可堆叠
         if (!IsStackable(items[i].Ptr))
             continue;
 
@@ -226,8 +202,6 @@ void PerformOrganize(DWORD targetArrayOffset)
                 break;
             if (items[j].Count == 0)
                 continue;
-
-            // 确保第二个物品也是可堆叠的
             if (!IsStackable(items[j].Ptr))
                 continue;
 
@@ -235,86 +209,124 @@ void PerformOrganize(DWORD targetArrayOffset)
             if (space > 0)
             {
                 int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
-
                 items[i].Count += take;
                 items[j].Count -= take;
-
-                // 立即更新内存
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
-
                 if (items[i].Count == 9)
                     break;
             }
         }
     }
 
-    // 4. 清理废弃物品 & 准备最终排序
+    // 4. 清理废弃 & 最终排序
     SortItemNode finalItems[50];
     int finalCount = 0;
-
     for (int i = 0; i < validCount; i++)
     {
         if (items[i].Count > 0)
-        {
             finalItems[finalCount++] = items[i];
-        }
         else
-        {
-            // Count == 0, 调用游戏删除函数
             SafeDeleteItem(charBase, items[i].Ptr);
-        }
     }
-
-    // 5. 最终排序
     qsort(finalItems, finalCount, sizeof(SortItemNode), CompareItems);
 
-    // 6. 写回容器 (背包 或 储藏箱)
+    // 5. 写回容器
     for (int i = 0; i < 50; i++)
-    {
         slotArray[i] = -1;
-    }
     for (int i = 0; i < finalCount; i++)
-    {
         slotArray[i] = finalItems[i].Index;
-    }
-
-    // 7. 提示音效
-    MessageBeep(MB_OK);
 }
 
 // ---------------------------------------------------------
-// 线程与初始化
+// [新增] 清理快捷栏逻辑
 // ---------------------------------------------------------
-
-DWORD WINAPI InventoryMonitorThread(LPVOID lpParam)
+// 返回值: TRUE 表示有物品移动，需要重新整理背包
+BOOL CleanupQuickSlots()
 {
-    while (g_bMonitorThreadRunning)
+    DWORD charBase = GetCharacterBase();
+    if (charBase == 0)
+        return FALSE;
+
+    // 获取指针
+    int *invArray = (int *)(charBase + g_Offset_InventoryArr);
+    int *quickArray = (int *)(charBase + g_Offset_QuickSlotArr);
+    DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
+    if (poolAddress == 0)
+        return FALSE;
+    DWORD *itemPoolPtr = (DWORD *)poolAddress;
+
+    BOOL hasMoved = FALSE;
+
+    // 遍历 6 个快捷栏
+    for (int q = 0; q < 6; q++)
     {
-        Sleep(100);
+        int qIdx = quickArray[q];
+        if (qIdx == -1)
+            continue; // 空格子
 
-        if (g_pk_config.inventory_sort)
+        ItemObject *obj = (ItemObject *)itemPoolPtr[qIdx];
+        if (obj == NULL || IsBadReadPtr(obj, sizeof(ItemObject)))
+            continue;
+
+        // 检查类型 (base + 0x28)
+        // 20 为正常道具类型，如果不等于 20，则尝试移动
+        if (obj->ItemID >= 22 && obj->ItemID <= 23)
+            continue;
+
+        if (obj->ItemID >= 60 && obj->ItemID <= 77)
+            continue;
+
+        // 寻找背包中的空位
+        // 注意：我们假设在调用此函数前已经执行过 PerformOrganize
+        // 所以背包是紧凑的，直接找第一个 -1 即可
+        int freeSlot = -1;
+        for (int i = 0; i < 50; i++)
         {
-            BOOL ctrlPressed = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-
-            if (ctrlPressed)
+            if (invArray[i] == -1)
             {
-                // 快捷键: Ctrl + \ (VK_OEM_5) -> 整理背包
-                if (GetAsyncKeyState(VK_OEM_5) & 0x8000)
-                {
-                    PerformOrganize(g_Offset_InventoryArr);
-                    Sleep(500); // 防抖
-                }
-                // 快捷键: Ctrl + [ (VK_OEM_4) -> 整理储藏箱
-                else if (GetAsyncKeyState(VK_OEM_4) & 0x8000)
-                {
-                    PerformOrganize(g_Offset_StashArr);
-                    Sleep(500); // 防抖
-                }
+                freeSlot = i;
+                break;
             }
         }
+
+        // 如果背包满了，直接退出循环，不再尝试移动
+        if (freeSlot == -1)
+        {
+            break;
+        }
+
+        // 执行移动
+        invArray[freeSlot] = qIdx; // 放入背包
+        quickArray[q] = -1;        // 清空快捷栏
+        hasMoved = TRUE;
     }
-    return 0;
+
+    return hasMoved;
+}
+
+// [新增] 封装背包整理的完整流程
+void ExecuteInventorySortFlow()
+{
+    // 1. 先进行一次标准整理
+    PerformOrganize(g_Offset_InventoryArr);
+
+    // 2. 检查快捷栏，把非道具物品移入刚腾出的空位
+    if (CleanupQuickSlots())
+    {
+        // 3. 如果有物品移入，再次整理
+        PerformOrganize(g_Offset_InventoryArr);
+    }
+
+    MessageBeep(MB_OK);
+}
+
+void ExecuteStashSortFlow()
+{
+    // 1. 先进行一次标准整理
+    PerformOrganize(g_Offset_StashArr);
+
+    MessageBeep(MB_OK);
 }
 
 void Mod_inv_auto_sort_init(int game_version)
@@ -336,9 +348,6 @@ void Mod_inv_auto_sort_init(int game_version)
     {
         return;
     }
-
-    // 2. 启动线程
-    CreateThread(NULL, 0, InventoryMonitorThread, NULL, 0, NULL);
 }
 
 void pk_inventory_cleanup()
