@@ -1,14 +1,40 @@
 ﻿#include <windows.h>
 #include <stdio.h>
-#include <shlwapi.h> // 需要链接 shlwapi.lib
+#include <shlwapi.h>
+#include <time.h>
+#include < tchar.h >
+
+#pragma comment(linker, "/subsystem:windows /entry:WinMainCRTStartup")
 
 #pragma comment(lib, "shlwapi.lib")
 
 // 全局配置
-char g_targetExe[MAX_PATH] = "ComeOn.exe"; // 默认游戏名
-char g_dllName[MAX_PATH] = "PlugK.dll";    // DLL名
+char g_targetExe[MAX_PATH] = "ComeOn.exe";
+char g_dllName[MAX_PATH] = "PlugK.dll";
+char g_logPath[MAX_PATH] = "loader.log";
 
-// 读取配置
+// 简单的文件日志记录
+void LogError(const wchar_t *message, DWORD errorCode)
+{
+    FILE *fp = fopen(g_logPath, "a");
+    if (fp)
+    {
+        time_t now = time(NULL);
+        char timeStr[64];
+        struct tm tm_info;
+        localtime_s(&tm_info, &now);
+        strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", &tm_info);
+
+        fprintf(fp, "[%s] Error: %ls (Code: %d)\n", timeStr, message, errorCode);
+        fclose(fp);
+    }
+
+    // 弹窗提示
+    wchar_t fullMsg[512];
+    swprintf_s(fullMsg, 512, L"%ls\nError Code: %d", message, errorCode);
+    MessageBoxW(NULL, fullMsg, L"PlugK Loader Error", MB_ICONERROR | MB_OK);
+}
+
 void LoadConfig()
 {
     char iniPath[MAX_PATH];
@@ -17,14 +43,12 @@ void LoadConfig()
 
     if (PathFileExistsA(iniPath))
     {
-        // 如果有配置文件，优先读取配置文件中的游戏名
         GetPrivateProfileStringA("General", "GameExe", "ComeOn.exe", g_targetExe, MAX_PATH, iniPath);
-        // 也可以配置 DLL 名字
         GetPrivateProfileStringA("General", "DllName", "PlugK.dll", g_dllName, MAX_PATH, iniPath);
     }
 }
 
-// 注入核心函数
+// 核心注入函数 (保持不变，省略部分细节以节省篇幅，重点在错误处理调用 LogError)
 BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
 {
     HANDLE hProcess = pi->hProcess;
@@ -36,14 +60,14 @@ BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
     pRemoteBuf = VirtualAllocEx(hProcess, NULL, dwBufSize, MEM_COMMIT, PAGE_READWRITE);
     if (pRemoteBuf == NULL)
     {
-        printf("[!] 无法在目标进程分配内存。错误码: %d\n", GetLastError());
+        LogError(L"[!] 无法在目标进程分配内存。错误码: %d\n", GetLastError());
         return FALSE;
     }
 
     // 2. 将 DLL 的完整路径写入目标进程内存
     if (!WriteProcessMemory(hProcess, pRemoteBuf, (LPVOID)dllPath, dwBufSize, NULL))
     {
-        printf("[!] 写入内存失败。错误码: %d\n", GetLastError());
+        LogError(L"[!] 写入内存失败。错误码: %d\n", GetLastError());
         VirtualFreeEx(hProcess, pRemoteBuf, 0, MEM_RELEASE);
         return FALSE;
     }
@@ -53,7 +77,7 @@ BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
     pThreadProc = GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
     if (pThreadProc == NULL)
     {
-        printf("[!] 无法获取 LoadLibraryA 地址。\n");
+        LogError(L"[!] 无法获取 LoadLibraryA 地址。\n", GetLastError());
         VirtualFreeEx(hProcess, pRemoteBuf, 0, MEM_RELEASE);
         return FALSE;
     }
@@ -62,7 +86,7 @@ BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
     HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pThreadProc, pRemoteBuf, 0, NULL);
     if (hThread == NULL)
     {
-        printf("[!] 创建远程线程失败。错误码: %d\n", GetLastError());
+        LogError(L"[!] 创建远程线程失败。错误码: %d\n", GetLastError());
         VirtualFreeEx(hProcess, pRemoteBuf, 0, MEM_RELEASE);
         return FALSE;
     }
@@ -73,50 +97,34 @@ BOOL InjectDLL(PROCESS_INFORMATION *pi, const char *dllPath)
 
     // 6. 清理目标进程中的临时内存
     VirtualFreeEx(hProcess, pRemoteBuf, 0, MEM_RELEASE);
-
-    printf("[+] PlugK.dll 注入成功！\n");
     return TRUE;
 }
 
-int main()
+int WINAPI WinMain(
+    _In_ HINSTANCE hInstance,
+    _In_opt_ HINSTANCE hPrevInstance,
+    _In_ LPSTR lpCmdLine,
+    _In_ int nCmdShow)
 {
-    // 设置控制台标题
-    SetConsoleTitleA("PlugK 启动器");
-
-    printf("==========================================\n");
-    printf("        PlugK Game Loader v1.0            \n");
-    printf("==========================================\n\n");
-
     // 1. 加载配置
     LoadConfig();
 
     // 2. 检查 DLL 是否存在，并获取完整路径 (重要！注入必须用完整路径)
+    char currentDir[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, currentDir);
+
     char fullDllPath[MAX_PATH];
-    if (GetFullPathNameA(g_dllName, MAX_PATH, fullDllPath, NULL) == 0)
-    {
-        printf("[x] 路径解析错误。\n");
-        system("pause");
-        return 1;
-    }
+    snprintf(fullDllPath, MAX_PATH, "%s\\%s", currentDir, g_dllName);
 
     if (!PathFileExistsA(fullDllPath))
     {
-        printf("[x] 错误：未找到 %s\n", g_dllName);
-        printf("    请确保 dll 文件与本程序在同一目录下。\n", g_dllName);
-        system("pause");
+        LogError(L"未找到 DLL 文件，请确认 PlugK.dll 是否在当前目录。", 0);
         return 1;
     }
 
-    printf("[*] 目标 DLL: %s\n", fullDllPath);
-    printf("[*] 目标 游戏: %s\n", g_targetExe);
-
-    // 3. 检查游戏 EXE 是否存在
     if (!PathFileExistsA(g_targetExe))
     {
-        printf("[x] 错误：未找到游戏主程序 \"%s\"\n", g_targetExe);
-        printf("    提示：你可以创建一个 PlugKLoader.ini 文件来指定游戏程序名称。\n");
-        printf("    [General]\n    GameExe=你的游戏名.exe\n");
-        system("pause");
+        LogError(L"未找到游戏主程序 (ComeOn.exe)。", 0);
         return 1;
     }
 
@@ -126,50 +134,25 @@ int main()
     PROCESS_INFORMATION pi = {0};
     si.cb = sizeof(si);
 
-    BOOL bRet = CreateProcessA(
-        NULL,             // 应用程序名称
-        g_targetExe,      // 命令行 (这里直接放 exe 名)
-        NULL,             // 进程安全属性
-        NULL,             // 线程安全属性
-        FALSE,            // 是否继承句柄
-        CREATE_SUSPENDED, // <--- 关键：挂起模式
-        NULL,             // 环境变量
-        NULL,             // 当前目录
-        &si,              // 启动信息
-        &pi               // 进程信息 (返回)
-    );
+    BOOL bRet = CreateProcessA(NULL, g_targetExe, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi);
 
     if (!bRet)
     {
-        printf("[x] 启动游戏失败。错误码: %d\n", GetLastError());
-        system("pause");
+        LogError(L"启动游戏进程失败。", GetLastError());
         return 1;
     }
 
-    printf("[*] 游戏进程已创建 (PID: %d)，状态：挂起。\n", pi.dwProcessId);
-
     // 5. 执行注入
-    if (InjectDLL(&pi, fullDllPath))
+    if (!InjectDLL(&pi, fullDllPath))
     {
-        // 6. 恢复游戏主线程
-        printf("[*] 正在恢复游戏运行...\n");
-        ResumeThread(pi.hThread);
-
-        // 这里的逻辑看你需求：
-        // 如果你希望 Loader 启动游戏后自动关闭，就保留下面的代码
-        // 如果你希望 Loader 保持开启显示 Log，可以用 getchar()
-    }
-    else
-    {
-        printf("[x] 注入失败，正在终止游戏进程...\n");
+        // InjectDLL 内部已经记录了日志
         TerminateProcess(pi.hProcess, 0);
+        return 1;
     }
 
-    // 关闭句柄
-    CloseHandle(pi.hThread);
+    ResumeThread(pi.hThread);
     CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 
-    // 稍作延时后退出
-    Sleep(300);
     return 0;
 }

@@ -1,4 +1,4 @@
-﻿// Microsoft Visual C++ generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #pragma code_page(65001)
 
@@ -69,8 +69,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,0,1
- PRODUCTVERSION 0,0,0,1
+ FILEVERSION 0,1,0,1
+ PRODUCTVERSION 0,1,0,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -85,14 +85,14 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "CompanyName", "github.com/cartman-kai"
+            VALUE "CompanyName", "阿宅 github.com/cartman-kai"
             VALUE "FileDescription", "plugK mod 启动加载器"
-            VALUE "FileVersion", "0.0.1.0"
+            VALUE "FileVersion", "0.1.0.1"
             VALUE "InternalName", "plugKLoader.exe"
             VALUE "LegalCopyright", "Copyright (C) 2025"
             VALUE "OriginalFilename", "plugKLoader.exe"
             VALUE "ProductName", "plugKLoader"
-            VALUE "ProductVersion", "0.0.1-alpha4"
+            VALUE "ProductVersion", "0.1.0.1"
         END
     END
     BLOCK "VarFileInfo"
