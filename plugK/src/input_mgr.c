@@ -1,95 +1,107 @@
 #include "pch.h"
 #include "input_mgr.h"
 #include "config.h"
+#include "stash_ext.h"
+#include "inv_auto_sort.h"
+#include "item_stack.h"
 
-// 引入各功能模块的头文件
-#include "stash_ext.h"     // 储物箱/背包扩展
-#include "inv_auto_sort.h" // 一键整理
-#include "item_stack.h"    // [本期新增] 物品叠加
+static WNDPROC g_OriginalWndProc = NULL;
+static HWND g_hGameWindow = NULL;
 
-// 全局线程句柄
-static HANDLE g_hInputThread = NULL;
-static BOOL g_bInputThreadRunning = TRUE;
-
-// 统一的按键监听线程
-DWORD WINAPI InputMonitorThread(LPVOID lpParam)
+// 自定义消息处理函数
+LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    while (g_bInputThreadRunning)
+
+    // 监听按键按下消息
+    if (uMsg == WM_KEYDOWN)
     {
-        Sleep(50); // 适当的休眠，避免占用 CPU
-
-        // ---------------------------------------------------------
-        // 所有快捷键都依赖 CTRL 键
-        // ---------------------------------------------------------
-        if (GetAsyncKeyState(VK_CONTROL) & 0x8000)
+        // 检查 Ctrl 是否按下
+        if (GetKeyState(VK_CONTROL) & 0x8000)
         {
-            BOOL actionTriggered = FALSE;
+            int key = (int)wParam;
+            BOOL handled = FALSE;
 
-            // 1. 切换储物箱 A/B 面 (Ctrl + < / ,)
-            // VK_OEM_COMMA 是逗号键，即 <
-            if (GetAsyncKeyState(VK_OEM_COMMA) & 0x8000)
-            {
+            if (key == g_pk_config.key_stash_swap)
+            { // Ctrl + ;
                 if (g_pk_config.stash_ext_enabled)
                 {
-                    ToggleStash(); // 需在 stash_ext.h 中暴露
-                    actionTriggered = TRUE;
+                    ToggleStash(); // 储物箱切换
+                    handled = TRUE;
                 }
             }
-            // 2. 切换背包 A/B 面 (Ctrl + > / .)
-            // VK_OEM_PERIOD 是句号键，即 >
-            else if (GetAsyncKeyState(VK_OEM_PERIOD) & 0x8000)
-            {
+            else if (key == g_pk_config.key_inv_prev)
+            { // Ctrl + <
                 if (g_pk_config.stash_ext_enabled)
                 {
-                    ToggleInventory(); // 需在 stash_ext.h 中暴露
-                    actionTriggered = TRUE;
+                    ToggleInventory(); // 上一页
+                    handled = TRUE;
                 }
             }
-            // 3. 储物箱一键整理 (Ctrl + [)
-            else if (GetAsyncKeyState(VK_OEM_4) & 0x8000)
+            else if (key == g_pk_config.key_inv_next)
+            { // Ctrl + >
+                if (g_pk_config.stash_ext_enabled)
+                {
+                    ToggleInventory(); // 下一页
+                    handled = TRUE;
+                }
+            }
+            else if (key == g_pk_config.key_inv_sort)
+            { // Ctrl + /
+                if (g_pk_config.inventory_sort)
+                {
+                    ExecuteInventorySortFlow(); // 背包整理
+                    handled = TRUE;
+                }
+            }
+            else if (key == g_pk_config.key_stash_sort)
             {
                 if (g_pk_config.inventory_sort)
                 {
-                    // 调用储物箱整理
-                    ExecuteStashSortFlow();
-                    actionTriggered = TRUE;
+                    ExecuteStashSortFlow(); // 储物箱整理
+                    handled = TRUE;
                 }
             }
-            // 4. 背包一键整理 (Ctrl + \)
-            else if (GetAsyncKeyState(VK_OEM_5) & 0x8000)
-            {
-                if (g_pk_config.inventory_sort)
-                {
-                    // 调用背包整理流程 (整理 -> 清理快捷栏 -> 整理)
-                    ExecuteInventorySortFlow(); // 需在 inv_auto_sort.c 中封装此逻辑
-                    actionTriggered = TRUE;
-                }
-            }
-            // 5. [新增] 物品叠加开关 (Ctrl + ')
-            // VK_OEM_7 是单引号/双引号键
-            else if (GetAsyncKeyState(VK_OEM_7) & 0x8000)
-            {
-                // 注意：这里不再判断 g_pk_config.enable_item_stack
-                // 因为配置项变成了“是否允许使用此功能”，而按键负责实时开关
-                ToggleItemStackState(); // 需在 item_stack.c 中实现
-                actionTriggered = TRUE;
-            }
 
-            // 如果触发了任意动作，进行防抖处理
-            if (actionTriggered)
-            {
-                Sleep(300); // 300ms 防抖
+            // ... 其他按键 (StashSort, StackToggle) ...
 
-                // 可选：为了防止连续误触，可以等待 Ctrl 抬起
-                // while (GetAsyncKeyState(VK_CONTROL) & 0x8000) Sleep(10);
+            // 如果是我们处理的快捷键，可以选择不传递给游戏，防止游戏误触
+            // 但对于 Ctrl 组合键，通常游戏本身没有冲突，可以返回 0 吞掉，或者继续传递
+            if (handled)
+            {
+                // MessageBeep(MB_OK); // 可以加个反馈
+                // return 0; // 吞掉消息 (可选)
             }
         }
+    }
+
+    // 调用游戏原本的处理函数
+    return CallWindowProc(g_OriginalWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+// 寻找游戏窗口并 Hook 的临时线程 (只运行一次)
+DWORD WINAPI HookWindowThread(LPVOID lpParam)
+{
+    int attempts = 0;
+    while (g_hGameWindow == NULL && attempts < 100)
+    {
+        g_hGameWindow = FindWindowA(NULL, "DaojianServer"); // 需确认窗口标题，或用类名
+        if (!g_hGameWindow)
+            g_hGameWindow = FindWindowA("DaojianServer", NULL);
+        // 也可以通过 GetCurrentProcessId() + EnumWindows 找到主窗口，这样最稳
+
+        Sleep(200);
+        attempts++;
+    }
+
+    if (g_hGameWindow)
+    {
+        g_OriginalWndProc = (WNDPROC)SetWindowLongPtr(g_hGameWindow, GWLP_WNDPROC, (LONG_PTR)PlugK_WndProc);
     }
     return 0;
 }
 
 void Mod_Input_Mgr_Init()
 {
-    g_bInputThreadRunning = TRUE;
-    g_hInputThread = CreateThread(NULL, 0, InputMonitorThread, NULL, 0, NULL);
+    // 启动一个临时线程去 Hook 窗口，因为 DLL 加载时窗口可能还没创建
+    CreateThread(NULL, 0, HookWindowThread, NULL, 0, NULL);
 }
