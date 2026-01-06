@@ -88,14 +88,11 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 扩展储物箱初始化
             Mod_Stash_Ext_Init(ver);
 
-            // 宝石可叠加
-            Mod_item_stack_init(ver);
+            // 存在游戏崩溃的 bug，暂时删除 宝石可叠加
+            // Mod_item_stack_init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();
-
-            // 正传 1.05 程序 连招得分补正
-            // Mod_Combo_Score_Init(ver);
         }
         else
         {

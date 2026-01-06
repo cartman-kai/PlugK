@@ -91,5 +91,6 @@ void pk_config_load()
     // 1.05版程序，连击得分 *2
     // g_pk_config.combo_score_fix = GetPrivateProfileIntA("ComboScore", "EnableFix", 0, ini_path);
 
-    g_pk_config.enable_item_stack = GetPrivateProfileIntA("Item", "EnableStack", 0, ini_path);
+    // 存在无法扔出 宝石的 bug，暂时删除
+    // g_pk_config.enable_item_stack = GetPrivateProfileIntA("Item", "EnableStack", 0, ini_path);
 }
