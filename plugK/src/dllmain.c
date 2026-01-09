@@ -8,9 +8,10 @@
 #include "shop_optimization.h"
 #include "stash_ext.h"
 #include "input_mgr.h"
-#include "combo_score.h"
+#include "auto_fill_ext.h"
 #include <windows.h>
 #include <stdio.h>
+#include <MinHook.h>
 
 // 版本定义
 #define VER_UNKNOWN 0
@@ -90,6 +91,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 存在游戏崩溃的 bug，暂时删除 宝石可叠加
             // Mod_item_stack_init(ver);
+            // 自动填充扩展页面
+            Mod_Auto_Fill_Init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();

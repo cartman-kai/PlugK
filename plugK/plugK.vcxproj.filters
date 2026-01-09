@@ -54,6 +54,9 @@
     <ClInclude Include="inc\input_mgr.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\auto_fill_ext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
@@ -90,6 +93,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\input_mgr.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\auto_fill_ext.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

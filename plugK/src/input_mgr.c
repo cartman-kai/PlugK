@@ -84,9 +84,9 @@ DWORD WINAPI HookWindowThread(LPVOID lpParam)
     int attempts = 0;
     while (g_hGameWindow == NULL && attempts < 100)
     {
-        g_hGameWindow = FindWindowA(NULL, "DaojianServer"); // 需确认窗口标题，或用类名
+        g_hGameWindow = FindWindowA(NULL, "daojian"); // 需确认窗口标题，或用类名
         if (!g_hGameWindow)
-            g_hGameWindow = FindWindowA("DaojianServer", NULL);
+            g_hGameWindow = FindWindowA("daojian", NULL);
         // 也可以通过 GetCurrentProcessId() + EnumWindows 找到主窗口，这样最稳
 
         Sleep(200);

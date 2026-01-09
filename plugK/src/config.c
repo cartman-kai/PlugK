@@ -35,9 +35,9 @@ void pk_config_create_default(const char *path)
             "; 启用扩展储物箱与背包功能 Ctrl + < 键切换储物箱 A/B 面  Ctrl + > 切换背包 \n"
             "EnableExt=1\n"
             "\n"
-            "[Item]\n"
-            "; 药品与宝石叠加功能 1=开启 0=关闭 游戏中打开后默认关闭，方便可看宝石属性，游戏中切换叠加快捷键 Ctrl + ' (单引号与双引号按键) \n"
-            "EnableStack=1\n"
+            "[Experimental]\n"
+            "; 实验性功能 扩展背包免翻页填充物品 1=开启 0=关闭 \n"
+            "AutoFillExt=1\n"
             "\n",
             f);
         fclose(f);

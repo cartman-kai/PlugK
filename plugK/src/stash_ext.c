@@ -10,7 +10,7 @@
 
 // 内存缓存 (B面数据)
 static int g_StashPageB[50];
-static int g_InvPageB[50];
+int g_InvPageB[50];
 
 // 当前状态 (0=A面, 1=B面)
 static int g_CurrentStashPage = 0;
@@ -389,32 +389,6 @@ void InstallStashExtJmp(DWORD addr, void *func, DWORD *ret, int len)
     VirtualProtect((void *)addr, len, old, &old);
 }
 
-DWORD WINAPI StashInputThread(LPVOID lpParam)
-{
-    while (1)
-    {
-        Sleep(100);
-        if (g_pk_config.stash_ext_enabled && g_IsStashExtReady)
-        {
-            BOOL ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-            // Ctrl + [ (VK_OEM_4) -> 切换储藏箱
-            if (ctrl && (GetAsyncKeyState(VK_OEM_COMMA) & 0x8000))
-            {
-                ToggleStash();
-                Sleep(200);
-            }
-            // Ctrl + ] (VK_OEM_6) -> 切换背包 (这里用 ] 对应背包比较顺手，或者您说的 > (OEM_PERIOD))
-            // 您的需求是 > 按键。 VK_OEM_PERIOD (.)
-            if (ctrl && (GetAsyncKeyState(VK_OEM_PERIOD) & 0x8000))
-            {
-                ToggleInventory();
-                Sleep(200);
-            }
-        }
-    }
-    return 0;
-}
-
 void Mod_Stash_Ext_Init(int ver)
 {
     if (!g_pk_config.stash_ext_enabled)
@@ -435,6 +409,4 @@ void Mod_Stash_Ext_Init(int ver)
         InstallStashExtJmp(ADDR_201_LOAD_HOOK, Hook_201_Load, &g_RetAddr_Load, 5);
         InstallStashExtJmp(ADDR_201_EXIT_HOOK, Hook_201_Exit, &g_RetAddr_Exit, 10);
     }
-
-    // CreateThread(NULL, 0, StashInputThread, NULL, 0, NULL);
 }
