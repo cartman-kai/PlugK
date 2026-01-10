@@ -4,6 +4,12 @@
 #include <stdio.h>
 
 // ---------------------------------------------------------
+// 外部变量引用 (来自 stash_ext.c)
+// ---------------------------------------------------------
+extern int g_StashPageB[50];
+extern int g_InvPageB[50];
+
+// ---------------------------------------------------------
 // 全局地址变量 (在 init 中根据版本动态赋值)
 // ---------------------------------------------------------
 static DWORD g_Addr_GetCharInfo = 0;
@@ -31,8 +37,8 @@ volatile BOOL g_bMonitorThreadRunning = TRUE;
 
 typedef struct
 {
-    int Index;
-    ItemObject *Ptr;
+    int Index;       // 物品池中的索引
+    ItemObject *Ptr; // 物品对象指针
     DWORD ID;
     DWORD Count;
     DWORD Level;
@@ -130,11 +136,11 @@ int CompareItems(const void *a, const void *b)
     SortItemNode *itemA = (SortItemNode *)a;
     SortItemNode *itemB = (SortItemNode *)b;
 
-    // ID > Count > Level > Price
+    // 排序优先级: ID > 数量(降序) > 等级 > 价格
     if (itemA->ID != itemB->ID)
         return (int)itemA->ID - (int)itemB->ID;
     if (itemA->Count != itemB->Count)
-        return (int)itemB->Count - (int)itemA->Count;
+        return (int)itemB->Count - (int)itemA->Count; // 数量多的排前面，利于合并
     if (itemA->Level != itemB->Level)
         return (int)itemA->Level - (int)itemB->Level;
     if (itemA->Price > itemB->Price)
@@ -145,33 +151,56 @@ int CompareItems(const void *a, const void *b)
 }
 
 // ---------------------------------------------------------
-// 核心整理逻辑
+// 核心整理逻辑 (支持 A+B 面统一整理)
 // ---------------------------------------------------------
-void PerformOrganize(DWORD targetArrayOffset)
+// targetArrayOffset: 角色身上的 A 面偏移 (如 g_Offset_InventoryArr)
+// hiddenPageArray:   对应的 B 面数组指针 (如 g_InvPageB)
+void PerformUnifiedOrganize(DWORD targetArrayOffset, int *hiddenPageArray)
 {
     DWORD charBase = GetCharacterBase();
     if (charBase == 0)
         return;
 
-    int *slotArray = (int *)(charBase + targetArrayOffset);
+    // 获取 A 面指针 (游戏内存)
+    int *gameSlotArray = (int *)(charBase + targetArrayOffset);
+
+    // 获取物品池指针
     DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
     if (poolAddress == 0)
         return;
     DWORD *itemPoolPtr = (DWORD *)poolAddress;
 
-    SortItemNode items[50];
+    // 定义容量：A面 50 + B面 50 = 100
+    SortItemNode items[100];
     int validCount = 0;
 
-    // 1. 读取有效物品
-    for (int i = 0; i < 50; i++)
+    // -------------------------------------------------
+    // 1. 读取有效物品 (合并 A 面和 B 面)
+    // -------------------------------------------------
+    for (int i = 0; i < 100; i++)
     {
-        int idx = slotArray[i];
-        if (idx != -1)
+        int itemIndex = -1;
+
+        if (i < 50)
         {
-            ItemObject *obj = (ItemObject *)itemPoolPtr[idx];
+            // 前 50 个来自 A 面 (游戏内存)
+            itemIndex = gameSlotArray[i];
+        }
+        else
+        {
+            // 后 50 个来自 B 面 (扩展数组)
+            if (hiddenPageArray)
+            {
+                itemIndex = hiddenPageArray[i - 50];
+            }
+        }
+
+        if (itemIndex != -1)
+        {
+            ItemObject *obj = (ItemObject *)itemPoolPtr[itemIndex];
             if (obj != NULL && !IsBadReadPtr(obj, sizeof(ItemObject)))
             {
-                items[validCount].Index = idx;
+                items[validCount].Index = itemIndex;
                 items[validCount].Ptr = obj;
                 items[validCount].ID = obj->ItemID;
                 items[validCount].Count = obj->Count;
@@ -185,10 +214,14 @@ void PerformOrganize(DWORD targetArrayOffset)
     if (validCount == 0)
         return;
 
-    // 2. 预排序
+    // -------------------------------------------------
+    // 2. 预排序 (将相同 ID 的物品排在一起)
+    // -------------------------------------------------
     qsort(items, validCount, sizeof(SortItemNode), CompareItems);
 
-    // 3. 合并逻辑
+    // -------------------------------------------------
+    // 3. 堆叠合并逻辑
+    // -------------------------------------------------
     for (int i = 0; i < validCount; i++)
     {
         if (items[i].Count == 0)
@@ -199,47 +232,86 @@ void PerformOrganize(DWORD targetArrayOffset)
         for (int j = i + 1; j < validCount; j++)
         {
             if (items[j].ID != items[i].ID)
-                break;
+                break; // ID 不同，无需继续，因为已经排序过
             if (items[j].Count == 0)
                 continue;
             if (!IsStackable(items[j].Ptr))
                 continue;
 
+            // 计算空间：假设最大堆叠数为 9 (根据原代码逻辑)
             int space = 9 - (int)items[i].Count;
             if (space > 0)
             {
                 int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
                 items[i].Count += take;
                 items[j].Count -= take;
+
+                // 更新内存中的数值
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
+
                 if (items[i].Count == 9)
-                    break;
+                    break; // 当前堆已满
             }
         }
     }
 
-    // 4. 清理废弃 & 最终排序
-    SortItemNode finalItems[50];
+    // -------------------------------------------------
+    // 4. 清理废弃(数量为0) & 最终排序
+    // -------------------------------------------------
+    SortItemNode finalItems[100];
     int finalCount = 0;
+
     for (int i = 0; i < validCount; i++)
     {
         if (items[i].Count > 0)
             finalItems[finalCount++] = items[i];
         else
-            SafeDeleteItem(charBase, items[i].Ptr);
+            SafeDeleteItem(charBase, items[i].Ptr); // 删除合并后数量为0的废弃对象
     }
+
+    // 再次排序，确保整理后的物品紧凑排列
     qsort(finalItems, finalCount, sizeof(SortItemNode), CompareItems);
 
-    // 5. 写回容器
+    // -------------------------------------------------
+    // 5. 写回容器 (分布到 A 面和 B 面)
+    // -------------------------------------------------
+
+    // 5.1 先清空两边
     for (int i = 0; i < 50; i++)
-        slotArray[i] = -1;
+        gameSlotArray[i] = -1;
+    if (hiddenPageArray)
+    {
+        for (int i = 0; i < 50; i++)
+            hiddenPageArray[i] = -1;
+    }
+
+    // 5.2 填入数据
     for (int i = 0; i < finalCount; i++)
-        slotArray[i] = finalItems[i].Index;
+    {
+        if (i < 50)
+        {
+            // 前 50 个填入 A 面
+            gameSlotArray[i] = finalItems[i].Index;
+        }
+        else
+        {
+            // 溢出的填入 B 面
+            if (hiddenPageArray)
+            {
+                hiddenPageArray[i - 50] = finalItems[i].Index;
+            }
+            else
+            {
+                // 如果没有 B 面但物品多余 50 (理论上不应发生，除非合并失败且原数据>50)，
+                // 这里作为保险，只能放在最后
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------
-// [新增] 清理快捷栏逻辑
+// [修改版] 清理快捷栏逻辑 (支持移入 B 面)
 // ---------------------------------------------------------
 // 返回值: TRUE 表示有物品移动，需要重新整理背包
 BOOL CleanupQuickSlots()
@@ -249,8 +321,9 @@ BOOL CleanupQuickSlots()
         return FALSE;
 
     // 获取指针
-    int *invArray = (int *)(charBase + g_Offset_InventoryArr);
+    int *invArrayA = (int *)(charBase + g_Offset_InventoryArr);
     int *quickArray = (int *)(charBase + g_Offset_QuickSlotArr);
+
     DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
     if (poolAddress == 0)
         return FALSE;
@@ -270,61 +343,88 @@ BOOL CleanupQuickSlots()
             continue;
 
         // 检查类型 (base + 0x28)
-        // 20 为正常道具类型，如果不等于 20，则尝试移动
+        // 保留正常道具类型 (假设 22,23,60-77 为快捷栏可用道具)
         if (obj->ItemID >= 22 && obj->ItemID <= 23)
             continue;
-
         if (obj->ItemID >= 60 && obj->ItemID <= 77)
             continue;
 
-        // 寻找背包中的空位
-        // 注意：我们假设在调用此函数前已经执行过 PerformOrganize
-        // 所以背包是紧凑的，直接找第一个 -1 即可
-        int freeSlot = -1;
+        // 需要移动。寻找空位：优先 A 面，其次 B 面
+        int freeSlotA = -1;
+        int freeSlotB = -1;
+
+        // 1. 找 A 面空位
         for (int i = 0; i < 50; i++)
         {
-            if (invArray[i] == -1)
+            if (invArrayA[i] == -1)
             {
-                freeSlot = i;
+                freeSlotA = i;
                 break;
             }
         }
 
-        // 如果背包满了，直接退出循环，不再尝试移动
-        if (freeSlot == -1)
+        // 2. 如果 A 面没空位，找 B 面空位
+        if (freeSlotA == -1)
         {
-            break;
+            for (int i = 0; i < 50; i++)
+            {
+                if (g_InvPageB[i] == -1)
+                {
+                    freeSlotB = i;
+                    break;
+                }
+            }
         }
 
-        // 执行移动
-        invArray[freeSlot] = qIdx; // 放入背包
-        quickArray[q] = -1;        // 清空快捷栏
-        hasMoved = TRUE;
+        // 3. 执行移动
+        if (freeSlotA != -1)
+        {
+            invArrayA[freeSlotA] = qIdx;
+            quickArray[q] = -1;
+            hasMoved = TRUE;
+        }
+        else if (freeSlotB != -1)
+        {
+            g_InvPageB[freeSlotB] = qIdx;
+            quickArray[q] = -1;
+            hasMoved = TRUE;
+        }
+        else
+        {
+            // A B 两面都满了，无法移动，只能跳过
+            break;
+        }
     }
 
     return hasMoved;
 }
 
-// [新增] 封装背包整理的完整流程
+// ---------------------------------------------------------
+// 流程封装
+// ---------------------------------------------------------
+
+// 背包整理流程
 void ExecuteInventorySortFlow()
 {
-    // 1. 先进行一次标准整理
-    PerformOrganize(g_Offset_InventoryArr);
+    // 1. 先进行一次 A+B 统一整理
+    // 这会将所有物品优先压缩到 A 面，溢出的去 B 面
+    PerformUnifiedOrganize(g_Offset_InventoryArr, g_InvPageB);
 
-    // 2. 检查快捷栏，把非道具物品移入刚腾出的空位
+    // 2. 检查快捷栏，把非道具物品移入空位 (优先 A，次选 B)
     if (CleanupQuickSlots())
     {
-        // 3. 如果有物品移入，再次整理
-        PerformOrganize(g_Offset_InventoryArr);
+        // 3. 如果有物品从快捷栏移入，再次执行 A+B 统一整理
+        PerformUnifiedOrganize(g_Offset_InventoryArr, g_InvPageB);
     }
 
     MessageBeep(MB_OK);
 }
 
+// 储物箱整理流程
 void ExecuteStashSortFlow()
 {
-    // 1. 先进行一次标准整理
-    PerformOrganize(g_Offset_StashArr);
+    // 直接进行 A+B 统一整理
+    PerformUnifiedOrganize(g_Offset_StashArr, g_StashPageB);
 
     MessageBeep(MB_OK);
 }

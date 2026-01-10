@@ -12,7 +12,7 @@
 // 全局状态管理
 // =========================================================
 
-extern int g_InvPageB[50];       // B 面数据 (持久化存储)
+int g_InvPageB[50];
 static int g_TempPageA[50];      // A 面备份 (临时存储)
 static BOOL g_IsSwapped = FALSE; // 全局标记：当前游戏内存是否为 B 面
 

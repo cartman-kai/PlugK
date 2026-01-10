@@ -13,6 +13,7 @@ void ToggleInventory();
 // 清理资源
 void Mod_Stash_Ext_Cleanup();
 
-void Mod_Auto_Fill_Init(int ver);
+extern int g_StashPageB[50];
+extern int g_InvPageB[50];
 
 #endif
