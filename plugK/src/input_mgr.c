@@ -37,14 +37,6 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                     handled = TRUE;
                 }
             }
-            else if (key == g_pk_config.key_inv_next)
-            { // Ctrl + >
-                if (g_pk_config.stash_ext_enabled)
-                {
-                    ToggleInventory(); // 下一页
-                    handled = TRUE;
-                }
-            }
             else if (key == g_pk_config.key_inv_sort)
             { // Ctrl + /
                 if (g_pk_config.inventory_sort)
