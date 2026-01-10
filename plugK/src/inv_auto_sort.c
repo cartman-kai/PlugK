@@ -1,6 +1,7 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "inv_auto_sort.h"
 #include "config.h"
+#include "show_tips.h"
 #include <stdio.h>
 
 // ---------------------------------------------------------
@@ -417,7 +418,10 @@ void ExecuteInventorySortFlow()
         PerformUnifiedOrganize(g_Offset_InventoryArr, g_InvPageB);
     }
 
-    MessageBeep(MB_OK);
+    // MessageBeep(MB_OK);
+
+    // [新增文字提示] GB2312 编码的文字
+    ShowGameLog("[背包] 整理完成");
 }
 
 // 储物箱整理流程
@@ -426,7 +430,9 @@ void ExecuteStashSortFlow()
     // 直接进行 A+B 统一整理
     PerformUnifiedOrganize(g_Offset_StashArr, g_StashPageB);
 
-    MessageBeep(MB_OK);
+    // MessageBeep(MB_OK);
+    // [新增文字提示] GB2312 编码的文字
+    ShowGameLog("[储物箱] 整理完成");
 }
 
 void Mod_inv_auto_sort_init(int game_version)

@@ -2,6 +2,7 @@
 #include "stash_ext.h"
 #include "config.h"
 #include "inv_auto_sort.h" // 复用 GetCharacterBase
+#include "show_tips.h"
 #include <stdio.h>
 
 // ---------------------------------------------------------
@@ -217,22 +218,18 @@ void SwapData(DWORD offset, int *cachePage, int *pageIndex)
     }
 
     *pageIndex = !(*pageIndex); // 切换状态
-
-    // 提示音区分 A/B 面
-    if (*pageIndex == 0)
-        Beep(500, 100); // 切回 A 面
-    else
-        Beep(1000, 100); // 切到 B 面
 }
 
 void ToggleStash()
 {
     SwapData(OFFSET_STASH_ARR, g_StashPageB, &g_CurrentStashPage);
+    ShowGameLog("[储物箱] 切换成功");
 }
 
 void ToggleInventory()
 {
     SwapData(OFFSET_INV_ARR, g_InvPageB, &g_CurrentInvPage);
+    ShowGameLog("[背包] 切换成功");
 }
 
 // ---------------------------------------------------------

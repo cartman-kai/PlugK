@@ -9,6 +9,7 @@
 #include "stash_ext.h"
 #include "input_mgr.h"
 #include "auto_fill_ext.h"
+#include "show_tips.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -75,6 +76,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         // 3. 根据版本应用补丁
         if (ver != VER_UNKNOWN)
         {
+            // 左侧文字提醒
+            Mod_show_tips_init(ver);
             // 商店回复、暗器卖出不消失
             Mod_shop_inf_stock_init(ver);
             // 分辨率修改功能
@@ -89,8 +92,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 扩展储物箱初始化
             Mod_Stash_Ext_Init(ver);
 
-            // 存在游戏崩溃的 bug，暂时删除 宝石可叠加
-            // Mod_item_stack_init(ver);
             // 自动填充扩展页面
             Mod_Auto_Fill_Init(ver);
 
