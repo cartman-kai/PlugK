@@ -23,6 +23,7 @@
     <ClInclude Include="inc\combo_score.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\framework.h" />
+    <ClInclude Include="inc\gem_insert.h" />
     <ClInclude Include="inc\input_mgr.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
     <ClInclude Include="inc\item_stack.h" />
@@ -40,6 +41,7 @@
     <ClCompile Include="src\combo_score.c" />
     <ClCompile Include="src\config.c" />
     <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\input_mgr.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
     <ClCompile Include="src\item_stack.c" />

@@ -36,6 +36,9 @@ typedef struct
     // [新增] 实验性功能
     int enable_autofill_ext; // 开启自动写入扩展页
 
+    // 宝石插入条件修改
+    int enable_insert_gem;
+
     // [新增] 快捷键配置 (存储 Virtual Key Code)
     int key_inv_prev; // 背包上一页
     int key_inv_next; // 背包下一页
