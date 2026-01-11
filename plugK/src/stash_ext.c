@@ -1,51 +1,127 @@
 ﻿#include "pch.h"
 #include "stash_ext.h"
 #include "config.h"
-#include "inv_auto_sort.h" // 复用 GetCharacterBase
+#include "inv_auto_sort.h"
 #include "show_tips.h"
 #include <stdio.h>
+#include <MinHook.h>
 
 // ---------------------------------------------------------
-// 全局变量与定义
+// 全局变量
 // ---------------------------------------------------------
-int g_StashPageB[50];
-int g_InvPageB[50];
 
-// 当前状态 (0=A面, 1=B面)
-static int g_CurrentStashPage = 0;
-static int g_CurrentInvPage = 0;
+// 扩展页面缓存 (索引 1-9)
+int g_StashPages[MAX_PAGES - 1][50];
+int g_InvPages[MAX_PAGES - 1][50];
+
+// 第 0 页备份缓存 (当玩家切到其他页时，第 0 页的数据存在这里)
+int g_StashPageZero[50];
+int g_InvPageZero[50];
+
+// 当前页索引
+int g_CurrentStashIdx = 0; // 0 是游戏原始内存页
+int g_CurrentInvIdx = 0;
 
 static int g_GameVersion = 0;
+static BOOL g_IsStashExtReady = FALSE;
 
-// 跳转返回地址
+// Hook 返回地址
 static DWORD g_RetAddr_Save = 0;
 static DWORD g_RetAddr_Load = 0;
 static DWORD g_RetAddr_Exit = 0;
+
+// 内存偏移
+#define OFFSET_STASH_ARR 0x1FC
+#define OFFSET_INV_ARR 0xA4
 
 // 1.05 地址
 #define ADDR_105_SAVE_HOOK 0x004815BA
 #define ADDR_105_LOAD_HOOK 0x00481B2A
 #define ADDR_105_EXIT_HOOK 0x004AD015
 
-// 2.01 地址 (根据您的调研)
+// 2.01 地址
 #define ADDR_201_SAVE_HOOK 0x00461B80
 #define ADDR_201_LOAD_HOOK 0x00490953
 #define ADDR_201_EXIT_HOOK 0x004BFDC5
 
-// 内存偏移
-#define OFFSET_STASH_ARR 0x1FC
-#define OFFSET_INV_ARR 0xA4
-
-// 标记
-static BOOL g_IsStashExtReady = FALSE;
-
-// 文件头结构
+// 存档结构定义 (V3)
 typedef struct
 {
-    char magic[4]; // "PKS2"
-    int stashB[50];
-    int invB[50];
-} PksFileV2;
+    char magic[4];       // "PKS3"
+    int currentStashIdx; // 存档时玩家停留的页码
+    int currentInvIdx;
+    int stashPages[MAX_PAGES - 1][50]; // 9个扩展页
+    int invPages[MAX_PAGES - 1][50];   // 9个扩展页
+} PksFileV3;
+
+// ---------------------------------------------------------
+// 内部辅助
+// ---------------------------------------------------------
+
+void ResetCache()
+{
+    // 清空扩展页
+    memset(g_StashPages, -1, sizeof(g_StashPages));
+    memset(g_InvPages, -1, sizeof(g_InvPages));
+    // 清空 Page 0 备份
+    memset(g_StashPageZero, -1, sizeof(g_StashPageZero));
+    memset(g_InvPageZero, -1, sizeof(g_InvPageZero));
+
+    g_CurrentStashIdx = 0;
+    g_CurrentInvIdx = 0;
+    g_IsStashExtReady = FALSE;
+}
+
+// ---------------------------------------------------------
+// 数据指针获取辅助 (供 inv_auto_sort 和 auto_fill 使用)
+// ---------------------------------------------------------
+
+// 获取背包某一页的数据指针
+int *GetInvPagePtr(int logicalIdx)
+{
+    if (logicalIdx < 0 || logicalIdx >= MAX_PAGES)
+        return NULL;
+
+    // 1. 如果请求的是当前正在显示的页面 -> 返回游戏内存地址
+    if (logicalIdx == g_CurrentInvIdx)
+    {
+        DWORD charBase = GetCharacterBase();
+        if (charBase)
+            return (int *)(charBase + OFFSET_INV_ARR);
+        return NULL;
+    }
+
+    // 2. 如果请求的是第 0 页，且当前不在第 0 页 -> 返回 Page0 缓存
+    if (logicalIdx == 0)
+    {
+        return g_InvPageZero;
+    }
+
+    // 3. 其他情况 -> 返回 g_InvPages 数组 (注意下标偏移，g_InvPages[0] 存的是 Page 1)
+    return g_InvPages[logicalIdx - 1];
+}
+
+// 获取储物箱某一页的数据指针
+int *GetStashPagePtr(int logicalIdx)
+{
+    if (logicalIdx < 0 || logicalIdx >= MAX_PAGES)
+        return NULL;
+
+    if (logicalIdx == g_CurrentStashIdx)
+    {
+        DWORD charBase = GetCharacterBase();
+        if (charBase)
+            return (int *)(charBase + OFFSET_STASH_ARR);
+        return NULL;
+    }
+
+    if (logicalIdx == 0)
+    {
+        return g_StashPageZero;
+    }
+
+    return g_StashPages[logicalIdx - 1];
+}
 
 // ---------------------------------------------------------
 // 辅助函数
@@ -80,21 +156,8 @@ BOOL GetExtSavePath(const char *originalPath, char *outPath, int maxLen)
     return TRUE;
 }
 
-// 初始化缓存
-void ResetCache()
-{
-    for (int i = 0; i < 50; i++)
-    {
-        g_StashPageB[i] = -1;
-        g_InvPageB[i] = -1;
-    }
-    g_CurrentStashPage = 0;
-    g_CurrentInvPage = 0;
-    g_IsStashExtReady = FALSE;
-}
-
 // ---------------------------------------------------------
-// 业务逻辑: Save / Load
+// 存档与读档
 // ---------------------------------------------------------
 
 void ProcessSaveExt(const char *savePath)
@@ -105,35 +168,17 @@ void ProcessSaveExt(const char *savePath)
     if (!GetExtSavePath(savePath, pkPath, MAX_PATH))
         return;
 
-    // 无论当前显示的是A面还是B面，内存中的 g_StashPageB 始终保存着 B 面的数据。
-    // 但是！如果当前显示的是 B 面 (g_CurrentStashPage == 1)，
-    // 那么角色的真实内存 (OFFSET_STASH_ARR) 里其实是 B 面数据，
-    // 而 g_StashPageB 里暂存的是 A 面数据。
-    // 保存时，我们只想保存 B 面数据到文件。
-
-    // 策略：我们总是把 g_StashPageB (缓存区) 视为 "非当前显示的那一面"。
-    // 但文件需要固定保存 "第二套装备"。
-    // 这种逻辑有点绕。
-
-    // 简化策略：
-    // 文件只保存 g_StashPageB 和 g_InvPageB。
-    // 在切换逻辑 Toggle 中，我们保证 g_StashPageB 永远持有 "另一面" 的数据。
-    // 那么，如果玩家在 B 面存档，g_StashPageB 里其实是 A 面数据。
-    // 这会导致 "存档里的扩展数据" 其实是 "A面数据"。
-    // 这对于 "扩展存储" 来说是可以接受的：它就是一个交换缓冲区。
-
-    PksFileV2 data;
-    memcpy(data.magic, "PKS2", 4);
-
-    // 直接保存当前缓存中的数据 (即"后台"数据)
-    memcpy(data.stashB, g_StashPageB, sizeof(int) * 50);
-    memcpy(data.invB, g_InvPageB, sizeof(int) * 50);
+    PksFileV3 data;
+    memcpy(data.magic, "PKS3", 4);
+    data.currentStashIdx = g_CurrentStashIdx;
+    data.currentInvIdx = g_CurrentInvIdx;
+    memcpy(data.stashPages, g_StashPages, sizeof(g_StashPages));
+    memcpy(data.invPages, g_InvPages, sizeof(g_InvPages));
 
     FILE *fp = NULL;
-    errno_t err = fopen_s(&fp, pkPath, "wb");
-    if (err == 0 && fp != NULL)
+    if (fopen_s(&fp, pkPath, "wb") == 0 && fp)
     {
-        fwrite(&data, sizeof(PksFileV2), 1, fp);
+        fwrite(&data, sizeof(PksFileV3), 1, fp);
         fclose(fp);
         g_IsStashExtReady = TRUE;
     }
@@ -141,7 +186,7 @@ void ProcessSaveExt(const char *savePath)
 
 void ProcessLoadExt(const char *loadPath)
 {
-    ResetCache(); // 先清空
+    ResetCache();
     if (!loadPath)
         return;
 
@@ -149,87 +194,113 @@ void ProcessLoadExt(const char *loadPath)
     if (!GetExtSavePath(loadPath, pkPath, MAX_PATH))
         return;
 
-    FILE *fp = fopen(pkPath, "rb");
-    if (fp)
+    FILE *fp = NULL;
+    if (fopen_s(&fp, pkPath, "rb") != 0 || !fp)
     {
-        PksFileV2 data;
-        size_t read = fread(&data, sizeof(PksFileV2), 1, fp);
-        fclose(fp);
-
-        if (read == 1 && strncmp(data.magic, "PKS2", 4) == 0)
-        {
-            // 版本 2 格式
-            memcpy(g_StashPageB, data.stashB, sizeof(int) * 50);
-            memcpy(g_InvPageB, data.invB, sizeof(int) * 50);
-        }
-        else
-        {
-            // 尝试兼容旧版本 (只存了 StashB 50个int)
-            // 重新打开读取头部
-            FILE *fp = NULL;
-            // fopen_s 返回 0 表示成功，否则返回错误代码
-            errno_t err = fopen_s(&fp, pkPath, "rb");
-            if (fp)
-            {
-                fseek(fp, 0, SEEK_END);
-                long size = ftell(fp);
-                fseek(fp, 0, SEEK_SET);
-                if (size == 50 * sizeof(int))
-                {
-                    fread(g_StashPageB, sizeof(int), 50, fp);
-                    // InvB 保持 -1
-                }
-                fclose(fp);
-            }
-        }
         g_IsStashExtReady = TRUE;
-    }
-    else
-    {
-        // 文件不存在，但也标记就绪，允许创建新数据
-        g_IsStashExtReady = TRUE;
-    }
-}
-
-// ---------------------------------------------------------
-// 切换逻辑
-// ---------------------------------------------------------
-
-void SwapData(DWORD offset, int *cachePage, int *pageIndex)
-{
-    if (!g_IsStashExtReady)
-    {
-        Beep(200, 100);
         return;
     }
 
+    fseek(fp, 0, SEEK_END);
+    long size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (size >= (long)sizeof(PksFileV3))
+    {
+        // V3 格式
+        PksFileV3 data;
+        if (fread(&data, sizeof(PksFileV3), 1, fp) == 1 && strncmp(data.magic, "PKS3", 4) == 0)
+        {
+            g_CurrentStashIdx = data.currentStashIdx;
+            g_CurrentInvIdx = data.currentInvIdx;
+            memcpy(g_StashPages, data.stashPages, sizeof(g_StashPages));
+            memcpy(g_InvPages, data.invPages, sizeof(g_InvPages));
+        }
+    }
+    else if (size == 404)
+    {
+        // V2 格式兼容
+        char magic[4];
+        fread(magic, 4, 1, fp);
+        if (strncmp(magic, "PKS2", 4) == 0)
+        {
+            fread(g_StashPages[0], sizeof(int), 50, fp); // 旧版 B 面放入 Page 1
+            fread(g_InvPages[0], sizeof(int), 50, fp);
+        }
+    }
+
+    fclose(fp);
+    g_IsStashExtReady = TRUE;
+}
+
+// ---------------------------------------------------------
+// 环形切换逻辑
+// ---------------------------------------------------------
+
+void SwapToPage(DWORD offset, int *currentIdx, int cacheArray[MAX_PAGES - 1][50], int *zeroPageCache, int direction)
+{
     DWORD charBase = GetCharacterBase();
-    if (charBase == 0)
+    if (!charBase || !g_IsStashExtReady)
         return;
 
     int *gameArr = (int *)(charBase + offset);
+    int nextIdx = (*currentIdx + direction) % MAX_PAGES;
+    if (nextIdx < 0)
+        nextIdx += MAX_PAGES;
 
-    // 交换 内存数组 <-> 缓存数组
-    for (int i = 0; i < 50; i++)
-    {
-        int temp = gameArr[i];
-        gameArr[i] = cachePage[i];
-        cachePage[i] = temp;
-    }
+    if (*currentIdx == nextIdx)
+        return;
 
-    *pageIndex = !(*pageIndex); // 切换状态
+    // 确定 "当前页" 切走后应该存哪里
+    // 如果当前是 0 页，存入 zeroPageCache
+    // 如果当前是 1-9 页，存入 cacheArray[idx-1]
+    int *oldCachePtr = (*currentIdx == 0) ? zeroPageCache : cacheArray[*currentIdx - 1];
+
+    // 确定 "下一页" 数据从哪里读
+    int *nextCachePtr = (nextIdx == 0) ? zeroPageCache : cacheArray[nextIdx - 1];
+
+    // 1. 备份当前内存数据到对应的缓存位置
+    memcpy(oldCachePtr, gameArr, 50 * sizeof(int));
+
+    // 2. 将目标缓存数据覆盖到内存
+    memcpy(gameArr, nextCachePtr, 50 * sizeof(int));
+
+    *currentIdx = nextIdx;
 }
 
-void ToggleStash()
+void ToggleStashEx(int direction)
 {
-    SwapData(OFFSET_STASH_ARR, g_StashPageB, &g_CurrentStashPage);
-    ShowGameLog("[储物箱] 切换成功");
+    SwapToPage(OFFSET_STASH_ARR, &g_CurrentStashIdx, g_StashPages, g_StashPageZero, direction);
+    char buf[64];
+    _snprintf_s(buf, 64, _TRUNCATE, "[储物箱] 已切换至第 %d 页", g_CurrentStashIdx + 1);
+    ShowGameLog(buf);
 }
 
-void ToggleInventory()
+void ToggleInventoryEx(int direction)
 {
-    SwapData(OFFSET_INV_ARR, g_InvPageB, &g_CurrentInvPage);
-    ShowGameLog("[背包] 切换成功");
+    SwapToPage(OFFSET_INV_ARR, &g_CurrentInvIdx, g_InvPages, g_InvPageZero, direction);
+    char buf[64];
+    _snprintf_s(buf, 64, _TRUNCATE, "[背包] 已切换至第 %d 页", g_CurrentInvIdx + 1);
+    ShowGameLog(buf);
+}
+
+// 兼容旧接口
+void ToggleStash() { ToggleStashEx(1); }
+void ToggleInventory() { ToggleInventoryEx(1); }
+
+// 强制切换页面 (用于自动填充)
+void ForceSwitchPage(int type, int targetIdx)
+{
+    int current = (type == 0) ? g_CurrentInvIdx : g_CurrentStashIdx;
+    int diff = targetIdx - current;
+
+    if (diff == 0)
+        return;
+
+    if (type == 0)
+        ToggleInventoryEx(diff);
+    else
+        ToggleStashEx(diff);
 }
 
 // ---------------------------------------------------------
@@ -388,7 +459,6 @@ void Mod_Stash_Ext_Init(int ver)
 {
     if (!g_pk_config.stash_ext_enabled)
         return;
-
     g_GameVersion = ver;
     ResetCache();
 

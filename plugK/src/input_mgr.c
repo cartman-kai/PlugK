@@ -21,33 +21,42 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
             int key = (int)wParam;
             BOOL handled = FALSE;
 
-            if (key == g_pk_config.key_stash_swap)
-            { // Ctrl + ;
-                if (g_pk_config.stash_ext_enabled)
+            if (g_pk_config.stash_ext_enabled)
+            {
+                if (key == g_pk_config.key_stash_prev)
                 {
-                    ToggleStash(); // 储物箱切换
+                    ToggleStashEx(-1);
+                    handled = TRUE;
+                }
+
+                if (key == g_pk_config.key_stash_next)
+                {
+                    ToggleStashEx(1);
+                    handled = TRUE;
+                }
+
+                if (key == g_pk_config.key_inv_prev)
+                {
+                    ToggleInventoryEx(-1); // 上一页
+                    handled = TRUE;
+                }
+
+                if (key == g_pk_config.key_inv_next)
+                {
+                    ToggleInventoryEx(1); // 下一页
                     handled = TRUE;
                 }
             }
-            else if (key == g_pk_config.key_inv_prev)
-            { // Ctrl + <
-                if (g_pk_config.stash_ext_enabled)
-                {
-                    ToggleInventory(); // 上一页
-                    handled = TRUE;
-                }
-            }
-            else if (key == g_pk_config.key_inv_sort)
-            { // Ctrl + /
-                if (g_pk_config.inventory_sort)
+
+            if (g_pk_config.inventory_sort)
+            {
+                if (key == g_pk_config.key_inv_sort)
                 {
                     ExecuteInventorySortFlow(); // 背包整理
                     handled = TRUE;
                 }
-            }
-            else if (key == g_pk_config.key_stash_sort)
-            {
-                if (g_pk_config.inventory_sort)
+
+                if (key == g_pk_config.key_stash_sort)
                 {
                     ExecuteStashSortFlow(); // 储物箱整理
                     handled = TRUE;

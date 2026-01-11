@@ -91,11 +91,15 @@ void pk_config_load()
     // 实验性功能，扩展背包自动填充
     g_pk_config.enable_autofill_ext = GetPrivateProfileIntA("Experimental", "AutoFillExt", 0, ini_path);
 
-    // 快捷键
-    g_pk_config.key_stash_swap = GetPrivateProfileIntA("Hotkeys", "StashSwap", VK_OEM_COMMA, ini_path); // 储物箱切换  改为 Ctrl+<;
-    g_pk_config.key_stash_sort = GetPrivateProfileIntA("Hotkeys", "StashSort", VK_OEM_4, ini_path);     // 储物箱整理  改为 Ctrl+[
-    g_pk_config.key_inv_prev = GetPrivateProfileIntA("Hotkeys", "InvPrev", VK_OEM_PERIOD, ini_path);    // 背包切换 ctrl + >
-    g_pk_config.key_inv_sort = GetPrivateProfileIntA("Hotkeys", "InvSort", VK_OEM_5, ini_path);         // 背包整理 ctrl+\
+    // 储物箱快捷键
+    g_pk_config.key_stash_prev = GetPrivateProfileIntA("Hotkeys", "StashSwap", VK_OEM_4, ini_path); // 储物箱   Ctrl+[
+    g_pk_config.key_stash_next = GetPrivateProfileIntA("Hotkeys", "StashSwap", VK_OEM_6, ini_path); // 储物箱  Ctrl+]
+    g_pk_config.key_stash_sort = GetPrivateProfileIntA("Hotkeys", "StashSort", VK_OEM_5, ini_path); // 储物箱整理 ctrl + \
+
+    // 背包快捷键
+    g_pk_config.key_inv_next = GetPrivateProfileIntA("Hotkeys", "InvNext", VK_OEM_PERIOD, ini_path); // 背包切换 ctrl + >
+    g_pk_config.key_inv_prev = GetPrivateProfileIntA("Hotkeys", "InvPrev", VK_OEM_COMMA, ini_path);  // 背包切换 ctrl + <
+    g_pk_config.key_inv_sort = GetPrivateProfileIntA("Hotkeys", "InvSort", VK_OEM_2, ini_path);      // 背包整理 ctrl+/
 
     // g_pk_config.key_stack_toggle = GetPrivateProfileIntA("Hotkeys", "StackToggle", VK_OEM_7, ini_path);
 

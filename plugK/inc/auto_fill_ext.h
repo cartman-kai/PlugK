@@ -3,7 +3,6 @@
 
 #include <windows.h>
 
-// 初始化扩展储物箱模块
 void Mod_Auto_Fill_Init(int ver);
 
 #endif

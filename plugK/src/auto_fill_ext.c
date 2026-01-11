@@ -4,104 +4,102 @@
 #include "inv_auto_sort.h"
 #include "auto_fill_ext.h"
 #include <stdio.h>
-#include <MinHook.h> // 一定要引入 MinHook
+#include <MinHook.h>
 
 #pragma comment(lib, "../deps/minhook/lib/libMinHook.x86.lib")
 
 // =========================================================
-// 全局状态管理
+// 全局状态
 // =========================================================
 
-int g_InvPageB[50];
-static int g_TempPageA[50];      // A 面备份 (临时存储)
-static BOOL g_IsSwapped = FALSE; // 全局标记：当前游戏内存是否为 B 面
+// 记录自动填充发生前的原始页面，用于还原
+static int g_OriginalPageIdx = -1;
+static BOOL g_IsTempSwapped = FALSE;
 
-// 定义函数指针类型
 typedef int(__fastcall *tFindEmptySlot)(void *thisPtr);
 static tFindEmptySlot fpOriginalFindEmptySlot = NULL;
 
-// 1.05 和 2.01 的 ItemIn 函数结尾地址 (用于 Hook 返回)
-static void *g_Addr_ItemIn_Exit = NULL;
-// 用于保存 ItemIn 函数结尾的原始指令的 Trampoline
 static void *fpOriginalItemInExit = NULL;
 
 // =========================================================
-// 核心逻辑: 交换与还原
+// 核心逻辑
 // =========================================================
 
-// 切换到 B 面 (仅当 A 面满且 B 面有空时调用)
-void SwapToPageB(void *pCharBase)
+// 检查指定逻辑页面是否有空位，返回 Slot Index (0-49)，无空位返回 -1
+int CheckPageForSpace(int pageIdx)
 {
-    if (g_IsSwapped)
-        return; // 已经在 B 面了，禁止重复交换！
+    // 利用 stash_ext.h 提供的辅助函数获取该页面的数据指针
+    // 无论它在内存中还是缓存中
+    int *pageData = GetInvPagePtr(pageIdx);
 
-    int *gameInv = (int *)((DWORD)pCharBase + 0xA4);
+    if (!pageData)
+        return -1;
 
-    // 1. 备份 A 面 (Game -> Temp)
-    memcpy(g_TempPageA, gameInv, 50 * sizeof(int));
-
-    // 2. 写入 B 面 (B -> Game)
-    memcpy(gameInv, g_InvPageB, 50 * sizeof(int));
-
-    g_IsSwapped = TRUE;
+    for (int i = 0; i < 50; i++)
+    {
+        if (pageData[i] == -1) // -1 代表空位
+        {
+            return i;
+        }
+    }
+    return -1;
 }
 
-// 还原回 A 面 (在函数彻底结束时调用)
-void RestoreToPageA(void *pCharBase)
+// 还原现场
+void RestoreOriginalPage()
 {
-    if (!g_IsSwapped)
-        return; // 没交换过，不需要还原
+    if (g_IsTempSwapped && g_OriginalPageIdx != -1)
+    {
+        // 强制切回原来的页面
+        ForceSwitchPage(0, g_OriginalPageIdx);
 
-    int *gameInv = (int *)((DWORD)pCharBase + 0xA4);
-
-    // 1. 保存 B 面 (Game -> B)
-    // 注意：此时 Game 内存里包含着刚刚捡起来的物品
-    memcpy(g_InvPageB, gameInv, 50 * sizeof(int));
-
-    // 2. 还原 A 面 (Temp -> Game)
-    memcpy(gameInv, g_TempPageA, 50 * sizeof(int));
-
-    g_IsSwapped = FALSE;
+        g_IsTempSwapped = FALSE;
+        g_OriginalPageIdx = -1;
+    }
 }
 
 // =========================================================
-// Hook 1: 拦截查找空位函数
+// Hook: 寻找空位
 // =========================================================
 int __fastcall Detour_FindEmptySlot(void *pCharBase)
 {
-    // 1. 先让游戏在当前内存中找 (可能是 A 面，也可能是已经被换过的 B 面)
+    // 1. 原生逻辑：检查当前页面
     int slot = fpOriginalFindEmptySlot(pCharBase);
 
-    // 如果找到了空位，或者功能没开，直接返回
+    // 如果找到了，或者功能没开，直接返回
     if (slot != -1 || !g_pk_config.enable_autofill_ext)
     {
         return slot;
     }
 
-    // 2. 只有当当前是 A 面时，才尝试去检查 B 面
-    // 如果已经在 B 面了还返回 -1，说明 B 面也满了，真的没地方放了
-    if (!g_IsSwapped)
+    // 2. 环形查找：从 (Current + 1) 开始，找遍所有 10 个页面
+    int currentIdx = g_CurrentInvIdx;
+
+    // 防止递归调用导致的死循环，如果已经在临时交换状态，就不再乱切了
+    if (g_IsTempSwapped)
+        return -1;
+
+    for (int i = 1; i < MAX_PAGES; i++)
     {
-        // 检查 B 面缓存是否有空位
-        int slotB = -1;
-        for (int i = 0; i < 50; i++)
-        {
-            if (g_InvPageB[i] == -1)
-            {
-                slotB = i;
-                break;
-            }
-        }
+        // 计算目标页面索引 (环形)
+        int targetIdx = (currentIdx + i) % MAX_PAGES;
 
-        if (slotB != -1)
-        {
-            // B 面有空位！执行热交换
-            SwapToPageB(pCharBase);
+        // 检查目标页是否有空位 (只读检查，不发生切换)
+        int targetSlot = CheckPageForSpace(targetIdx);
 
-            // 交换后，直接返回刚才找到的 slotB
-            // 游戏接下来的指令会把物品写到 gameInv[slotB]
-            // 因为我们 SwapToPageB 修改了 gameInv 指向的内存，所以实际写入了 B 面
-            return slotB;
+        if (targetSlot != -1)
+        {
+            // 找到了！
+            // 1. 记录当前现场
+            g_OriginalPageIdx = currentIdx;
+            g_IsTempSwapped = TRUE;
+
+            // 2. 执行切换：把目标页换到内存中
+            // 游戏接下来的逻辑会将物品写入内存地址 (0xA4偏移处)
+            ForceSwitchPage(0, targetIdx);
+
+            // 3. 返回找到的格子索引
+            return targetSlot;
         }
     }
 
@@ -109,43 +107,32 @@ int __fastcall Detour_FindEmptySlot(void *pCharBase)
 }
 
 // =========================================================
-// Hook 2: 拦截 ItemIn 函数的返回 (RET)
+// Hook: ItemIn 函数结束
 // =========================================================
-// 这是一个 Naked 函数，用于 Hook 函数末尾的 ret 18
-// 我们在这里做 "最终清算"
 
-// 辅助函数：在 C 环境下获取 CharBase 并还原
 void __stdcall Cleanup_Helper()
 {
-    DWORD charBase = GetCharacterBase();
-    if (charBase)
+    // 只有发生过临时交换才还原
+    if (g_IsTempSwapped)
     {
-        RestoreToPageA((void *)charBase);
+        RestoreOriginalPage();
     }
 }
 
 __declspec(naked) void Detour_ItemIn_Exit()
 {
     __asm {
-        // 保存寄存器 (尤其是 EAX, 它是返回值!)
         pushad
         pushfd
-
-                // 调用 C 逻辑进行还原
         call Cleanup_Helper
-
         popfd
         popad
-
-                            // 执行原始指令 (由 MinHook 自动生成的 Trampoline)
-                            // 注意：MinHook 对 JMP/CALL 支持很好，但对 RET 的 Hook 需要特殊处理。
-                            // 因为我们 Hook 的是 "add esp, 18; ret 18"，我们需要跳回 Trampoline 去执行这些被覆盖的指令。
         jmp fpOriginalItemInExit
     }
 }
 
 // =========================================================
-// 初始化 MinHook
+// 初始化
 // =========================================================
 void Mod_Auto_Fill_Init(int ver)
 {
@@ -157,41 +144,20 @@ void Mod_Auto_Fill_Init(int ver)
 
     if (ver == 105)
     {
-        // 1.05 FindEmptySlot (Call Address is 47F0C8, Target is 47F290)
         targetFindSlot = (LPVOID)0x0047F290;
-
-        // 1.05 ItemIn Exit
-        // 目标：0047EFBA | 83C4 18 | add esp, 18 (3 bytes)
-        //       0047EFBD | C2 1800 | ret 18      (3 bytes)
-        // 总共 6 字节，足够放一个 5 字节的 JMP Hook
         targetFuncExit = (LPVOID)0x0047EFBA;
     }
     else if (ver == 201)
     {
-        // 2.01 FindEmptySlot
         targetFindSlot = (LPVOID)0x0048E0A0;
-
-        // 2.01 ItemIn Exit
-        // 目标：0048DDAA | 83C4 18 | add esp, 18
-        //       0048DDAD | C2 1800 | ret 18
         targetFuncExit = (LPVOID)0x0048DDAA;
     }
 
     if (MH_Initialize() != MH_OK)
         return;
 
-    // 1. Hook FindEmptySlot
-    if (MH_CreateHook(targetFindSlot, &Detour_FindEmptySlot, (LPVOID *)&fpOriginalFindEmptySlot) != MH_OK)
-    {
-        OutputDebugStringA("PlugK: Failed to hook FindEmptySlot");
-    }
+    MH_CreateHook(targetFindSlot, &Detour_FindEmptySlot, (LPVOID *)&fpOriginalFindEmptySlot);
+    MH_CreateHook(targetFuncExit, &Detour_ItemIn_Exit, (LPVOID *)&fpOriginalItemInExit);
 
-    // 2. Hook Function Exit
-    if (MH_CreateHook(targetFuncExit, &Detour_ItemIn_Exit, (LPVOID *)&fpOriginalItemInExit) != MH_OK)
-    {
-        OutputDebugStringA("PlugK: Failed to hook ItemIn Exit");
-    }
-
-    // 启用所有 Hook
     MH_EnableHook(MH_ALL_HOOKS);
 }
