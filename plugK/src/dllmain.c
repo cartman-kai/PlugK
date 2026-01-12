@@ -10,6 +10,7 @@
 #include "input_mgr.h"
 #include "auto_fill_ext.h"
 #include "show_tips.h"
+#include "gem_insert.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -94,6 +95,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 自动填充扩展页面
             Mod_Auto_Fill_Init(ver);
+
+            // 镶嵌宝石条件修改
+            Mod_Gem_Insert_Init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();

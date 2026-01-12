@@ -38,6 +38,8 @@ void pk_config_create_default(const char *path)
             "[Experimental]\n"
             "; 实验性功能 扩展背包免翻页填充物品 1=开启 0=关闭 \n"
             "AutoFillExt=1\n"
+            "; 实验性功能 宝石插入条件修改 1=开启 0=关闭 \n"
+            "EnableGemInsert=1\n"
             "\n",
             f);
         fclose(f);
@@ -90,6 +92,9 @@ void pk_config_load()
 
     // 实验性功能，扩展背包自动填充
     g_pk_config.enable_autofill_ext = GetPrivateProfileIntA("Experimental", "AutoFillExt", 0, ini_path);
+
+    // 宝石插入条件修改
+    g_pk_config.enable_insert_gem = GetPrivateProfileIntA("Experimental", "EnableGemInsert", 0, ini_path);
 
     // 快捷键
     g_pk_config.key_stash_swap = GetPrivateProfileIntA("Hotkeys", "StashSwap", VK_OEM_COMMA, ini_path); // 储物箱切换  改为 Ctrl+<;
