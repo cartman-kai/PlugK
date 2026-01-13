@@ -99,6 +99,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 镶嵌宝石条件修改
             Mod_Gem_Insert_Init(ver);
 
+            // 屏幕震动效果禁用
+            Mod_Screen_shake_effect_init(ver);
+
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();
         }

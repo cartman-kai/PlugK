@@ -17,7 +17,11 @@ void pk_config_create_default(const char *path)
             "[Interface]\n"
             "; 打开背包/技能/属性窗口时，保持画面不左右移动（减少晃动感）\n"
             "; 1=开启(画面居中) 0=关闭(默认，画面右移)\n"
-            "KeepCenter=1\n\n"
+            "KeepCenter=1\n"
+            "\n"
+            "; 禁用屏幕震动效果 1=开启 0=关闭\n"
+            "disable_screen_shake=1\n"
+            "\n"
             "[Shop]\n"
             "; 设置为1 商店的回复类与暗器类物品购买后不消失 \n"
             "InfStock=0\n\n"
@@ -38,6 +42,7 @@ void pk_config_create_default(const char *path)
             "[Experimental]\n"
             "; 实验性功能 扩展背包免翻页填充物品 1=开启 0=关闭 \n"
             "AutoFillExt=1\n"
+            "\n"
             "; 实验性功能 宝石插入条件修改 1=开启 0=关闭 \n"
             "EnableGemInsert=1\n"
             "\n",
@@ -81,6 +86,9 @@ void pk_config_load()
 
     // 打开背包界面不晃动
     g_pk_config.ui_keep_center = GetPrivateProfileIntA("Interface", "KeepCenter", 0, ini_path);
+
+    // 屏幕震动效果禁用
+    g_pk_config.disable_screen_shake = GetPrivateProfileIntA("Interface", "disable_screen_shake", 0, ini_path);
 
     // 商店物品数量随机
     g_pk_config.shop_item_count = GetPrivateProfileIntA("Shop", "OptimizeItem", 0, ini_path);

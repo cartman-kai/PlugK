@@ -38,6 +38,9 @@ typedef struct
     // 宝石插入条件修改
     int enable_insert_gem;
 
+    // 屏幕震动效果禁用
+    int disable_screen_shake;
+
     // [新增] 快捷键配置 (存储 Virtual Key Code)
     int key_inv_sort;     // 背包整理
     int key_stash_sort;   // 储物箱整理
