@@ -42,12 +42,13 @@ typedef struct
     int disable_screen_shake;
 
     // [新增] 快捷键配置 (存储 Virtual Key Code)
-    int key_inv_sort;     // 背包整理
-    int key_stash_sort;   // 储物箱整理
-    int key_inv_prev;     // 背包上一页
-    int key_inv_next;     // 背包下一页
-    int key_stash_swap;   // 储物箱切换 (A/B)
-    int key_stack_toggle; // 叠加开关
+    int key_inv_sort;         // 背包整理
+    int key_stash_sort;       // 储物箱整理
+    int key_inv_prev;         // 背包上一页
+    int key_inv_next;         // 背包下一页
+    int key_stash_swap;       // 储物箱切换 (A/B)
+    int key_stack_toggle;     // 叠加开关
+    int key_inv_sort_current; // 仅整理当前背包页
 
     // 废弃
     BOOL combo_score_fix; // 1.05 程序连击得分补正 *2

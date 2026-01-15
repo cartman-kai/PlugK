@@ -9,6 +9,9 @@ void ExecuteInventorySortFlow();
 // 调用整理仓库
 void ExecuteStashSortFlow();
 
+// 整理背包仅当前页面
+void ExecuteCurrentInventorySortFlow();
+
 // 物品对象结构
 // 根据您的逆向信息更新
 typedef struct

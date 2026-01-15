@@ -151,6 +151,97 @@ int CompareItems(const void *a, const void *b)
     return 0;
 }
 
+void PerformOrganize(DWORD targetArrayOffset)
+{
+    DWORD charBase = GetCharacterBase();
+    if (charBase == 0)
+        return;
+
+    int *slotArray = (int *)(charBase + targetArrayOffset);
+    DWORD poolAddress = *(DWORD *)(charBase + g_Offset_PoolPtr);
+    if (poolAddress == 0)
+        return;
+    DWORD *itemPoolPtr = (DWORD *)poolAddress;
+
+    SortItemNode items[50];
+    int validCount = 0;
+
+    // 1. 读取有效物品
+    for (int i = 0; i < 50; i++)
+    {
+        int idx = slotArray[i];
+        if (idx != -1)
+        {
+            ItemObject *obj = (ItemObject *)itemPoolPtr[idx];
+            if (obj != NULL && !IsBadReadPtr(obj, sizeof(ItemObject)))
+            {
+                items[validCount].Index = idx;
+                items[validCount].Ptr = obj;
+                items[validCount].ID = obj->ItemID;
+                items[validCount].Count = obj->Count;
+                items[validCount].Level = obj->Level;
+                items[validCount].Price = obj->Price;
+                validCount++;
+            }
+        }
+    }
+
+    if (validCount == 0)
+        return;
+
+    // 2. 预排序
+    qsort(items, validCount, sizeof(SortItemNode), CompareItems);
+
+    // 3. 合并逻辑
+    for (int i = 0; i < validCount; i++)
+    {
+        if (items[i].Count == 0)
+            continue;
+        if (!IsStackable(items[i].Ptr))
+            continue;
+
+        for (int j = i + 1; j < validCount; j++)
+        {
+            if (items[j].ID != items[i].ID)
+                break;
+            if (items[j].Count == 0)
+                continue;
+            if (!IsStackable(items[j].Ptr))
+                continue;
+
+            int space = 9 - (int)items[i].Count;
+            if (space > 0)
+            {
+                int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
+                items[i].Count += take;
+                items[j].Count -= take;
+                items[i].Ptr->Count = items[i].Count;
+                items[j].Ptr->Count = items[j].Count;
+                if (items[i].Count == 9)
+                    break;
+            }
+        }
+    }
+
+    // 4. 清理废弃 & 最终排序
+    SortItemNode finalItems[50];
+    int finalCount = 0;
+    for (int i = 0; i < validCount; i++)
+    {
+        if (items[i].Count > 0)
+            finalItems[finalCount++] = items[i];
+        else
+            SafeDeleteItem(charBase, items[i].Ptr);
+    }
+    qsort(finalItems, finalCount, sizeof(SortItemNode), CompareItems);
+
+    // 5. 写回容器
+    for (int i = 0; i < 50; i++)
+        slotArray[i] = -1;
+    for (int i = 0; i < finalCount; i++)
+        slotArray[i] = finalItems[i].Index;
+}
+
 // ---------------------------------------------------------
 // 核心整理逻辑 (支持 A+B 面统一整理)
 // ---------------------------------------------------------
@@ -433,6 +524,21 @@ void ExecuteStashSortFlow()
     // MessageBeep(MB_OK);
     // [新增文字提示] GB2312 编码的文字
     ShowGameLog("[储物箱] 整理完成");
+}
+
+void ExecuteCurrentInventorySortFlow()
+{
+    // 1. 先进行一次标准整理
+    PerformOrganize(g_Offset_InventoryArr);
+
+    // 2. 检查快捷栏，把非道具物品移入刚腾出的空位
+    if (CleanupQuickSlots())
+    {
+        // 3. 如果有物品移入，再次整理
+        PerformOrganize(g_Offset_InventoryArr);
+    }
+
+    ShowGameLog("[背包] 当前页-整理完成");
 }
 
 void Mod_inv_auto_sort_init(int game_version)

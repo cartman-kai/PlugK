@@ -53,6 +53,14 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                     handled = TRUE;
                 }
             }
+            else if (key == g_pk_config.key_inv_sort_current)
+            {
+                if (g_pk_config.inventory_sort)
+                {
+                    ExecuteCurrentInventorySortFlow(); // 仅整理当前背包页
+                    handled = TRUE;
+                }
+            }
 
             // ... 其他按键 (StashSort, StackToggle) ...
 
