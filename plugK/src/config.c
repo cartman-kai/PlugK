@@ -104,6 +104,9 @@ void pk_config_load()
     // 宝石插入条件修改
     g_pk_config.enable_insert_gem = GetPrivateProfileIntA("Experimental", "EnableGemInsert", 0, ini_path);
 
+    // 宝石安全掉落
+    g_pk_config.gem_safe_drop = GetPrivateProfileIntA("Experimental", "GemSafeDrop", 1, ini_path);
+
     // 快捷键
     g_pk_config.key_stash_swap = GetPrivateProfileIntA("Hotkeys", "StashSwap", VK_OEM_COMMA, ini_path); // 储物箱切换  改为 Ctrl+<;
     g_pk_config.key_stash_sort = GetPrivateProfileIntA("Hotkeys", "StashSort", VK_OEM_4, ini_path);     // 储物箱整理  改为 Ctrl+[

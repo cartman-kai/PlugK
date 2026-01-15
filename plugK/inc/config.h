@@ -38,6 +38,8 @@ typedef struct
     // 宝石插入条件修改
     int enable_insert_gem;
 
+    int gem_safe_drop; // 宝石安全掉落
+
     // 屏幕震动效果禁用
     int disable_screen_shake;
 

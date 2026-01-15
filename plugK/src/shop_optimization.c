@@ -167,7 +167,7 @@ void PatchItemStackability()
             *pCanStack = 1;
         }
         DWORD itemType = *(DWORD *)(itemDataPtr + 8);
-        if (itemType >= 30 && itemType <= 35 && g_pk_config.enable_item_stack)
+        if (itemType >= 30 && itemType <= 35 && g_pk_config.gem_safe_drop)
         {
             int *pCanStack = (int *)(itemDataPtr + 0x18);
             *pCanStack = 1;

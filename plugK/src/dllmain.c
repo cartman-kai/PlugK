@@ -11,6 +11,7 @@
 #include "auto_fill_ext.h"
 #include "show_tips.h"
 #include "gem_insert.h"
+#include "gem_stack.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -101,6 +102,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 屏幕震动效果禁用
             Mod_Screen_shake_effect_init(ver);
+
+            // 宝石安全掉落
+            Mod_Gem_SafeDrop_Init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();
