@@ -24,6 +24,7 @@
     <ProjectGuid>{797c3467-ba8b-4639-8e09-f151bf36aa37}</ProjectGuid>
     <RootNamespace>config</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>plugKConfig</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -132,6 +133,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\plugK\inc\config.h" />
+    <ClInclude Include="..\plugK\inc\config_def.h" />
     <ClInclude Include="deps\imgui\backends\imgui_impl_dx9.h" />
     <ClInclude Include="deps\imgui\backends\imgui_impl_win32.h" />
     <ClInclude Include="deps\imgui\imconfig.h" />

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "shop_optimization.h"
 #include "config.h"
 #include <windows.h>
@@ -166,12 +166,12 @@ void PatchItemStackability()
             int *pCanStack = (int *)(itemDataPtr + 0x18);
             *pCanStack = 1;
         }
-        DWORD itemType = *(DWORD *)(itemDataPtr + 8);
-        if (itemType >= 30 && itemType <= 35 && g_pk_config.enable_item_stack)
-        {
-            int *pCanStack = (int *)(itemDataPtr + 0x18);
-            *pCanStack = 1;
-        }
+        //DWORD itemType = *(DWORD *)(itemDataPtr + 8);
+        //if (itemType >= 30 && itemType <= 35 && g_pk_config.enable_item_stack)
+        //{
+        //    int *pCanStack = (int *)(itemDataPtr + 0x18);
+        //    *pCanStack = 1;
+        //}
     }
 
     // 设置标记，已经更新

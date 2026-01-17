@@ -29,7 +29,7 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                     handled = TRUE;
                 }
             }
-            else if (key == g_pk_config.key_inv_prev)
+            else if (key == g_pk_config.key_inv_swap)
             { // Ctrl + <
                 if (g_pk_config.stash_ext_enabled)
                 {

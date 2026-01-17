@@ -3,77 +3,43 @@
 
 #include <windows.h>
 
-// 增加这一段
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
+    // 定义类型枚举，用于后续判断（可选，但为了清晰）
+    typedef enum
+    {
+        PK_CFG_BOOL,
+        PK_CFG_INT,
+        PK_CFG_KEY
+    } PkConfigType;
+
     typedef struct
     {
-        // 商店功能
-        BOOL shop_inf_stock;
+// === X-Macro 展开生成结构体成员 ===
+// 技巧：将 TYPE_BOOL 映射为 BOOL，TYPE_INT 映射为 int
+#define TYPE_BOOL BOOL
+#define TYPE_INT int
+#define TYPE_KEY int
 
-        // [新增] 分辨率功能
-        BOOL res_enabled;
-        int res_width;
-        int res_height;
+#define X(type, name, sec, key, val, desc) type name;
+#include "config_def.h"
+#undef X
 
-        // 1 = 开启回复类道具自动堆叠
-        BOOL stack_potion;
-
-        // 道具排序
-        BOOL inventory_sort;
-
-        // [新增] 界面修正功能
-        // 打开窗口时保持画面居中，不进行平移
-        BOOL ui_keep_center;
-
-        // [新增] 商店物品数量优化 (随机1-9 & 药水堆叠)
-        BOOL shop_item_count;
-
-        // 商店物品排序
-        BOOL shop_sort;
-
-        // [新增] 扩展储物箱 (大箱子)
-        BOOL stash_ext_enabled;
-
-        // [新增] 实验性功能
-        int enable_autofill_ext; // 开启自动写入扩展页
-
-        // 宝石插入条件修改
-        int enable_insert_gem;
-
-        // 屏幕震动效果禁用
-        int disable_screen_shake;
-
-        // 炼化物品数量优化
-        int enable_fuse_opt;
-
-        // [新增] 快捷键配置 (存储 Virtual Key Code)
-        int key_inv_sort;         // 背包整理
-        int key_stash_sort;       // 储物箱整理
-        int key_inv_prev;         // 背包上一页
-        int key_inv_next;         // 背包下一页
-        int key_stash_swap;       // 储物箱切换 (A/B)
-        int key_stack_toggle;     // 叠加开关
-        int key_inv_sort_current; // 仅整理当前背包页
-
-        // 废弃
-        BOOL combo_score_fix; // 1.05 程序连击得分补正 *2
-
-        // 废弃 物品叠加功能
-        BOOL enable_item_stack;
+#undef TYPE_BOOL
+#undef TYPE_INT
+#undef TYPE_KEY
+        // ==================================
 
     } PK_CONFIG;
 
     extern PK_CONFIG g_pk_config;
 
-    void pk_config_load();
-
+    void pk_config_load(const char *optional_path);
     void pk_config_create_default(const char *path);
 
-    // 增加这一段
 #ifdef __cplusplus
 }
 #endif

@@ -20,14 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\auto_fill_ext.h" />
-    <ClInclude Include="inc\combo_score.h" />
     <ClInclude Include="inc\config.h" />
+    <ClInclude Include="inc\config_def.h" />
     <ClInclude Include="inc\framework.h" />
     <ClInclude Include="inc\fuse_opt.h" />
     <ClInclude Include="inc\gem_insert.h" />
     <ClInclude Include="inc\input_mgr.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
-    <ClInclude Include="inc\item_stack.h" />
     <ClInclude Include="inc\pch.h" />
     <ClInclude Include="inc\resolution.h" />
     <ClInclude Include="inc\resource.h" />
@@ -39,14 +38,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\auto_fill_ext.c" />
-    <ClCompile Include="src\combo_score.c" />
     <ClCompile Include="src\config.c" />
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\fuse_opt.c" />
     <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\input_mgr.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
-    <ClCompile Include="src\item_stack.c" />
     <ClCompile Include="src\pch.c" />
     <ClCompile Include="src\resolution.c" />
     <ClCompile Include="src\shop_inf_stock.c" />
@@ -77,7 +74,7 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>

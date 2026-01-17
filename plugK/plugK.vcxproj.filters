@@ -24,9 +24,6 @@
     <ClInclude Include="inc\inv_auto_sort.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\item_stack.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="inc\pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -48,9 +45,6 @@
     <ClInclude Include="inc\stash_ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\combo_score.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="inc\input_mgr.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -66,6 +60,9 @@
     <ClInclude Include="inc\fuse_opt.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\config_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
@@ -75,9 +72,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\inv_auto_sort.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\item_stack.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\pch.c">
@@ -96,9 +90,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\stash_ext.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\combo_score.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\input_mgr.c">

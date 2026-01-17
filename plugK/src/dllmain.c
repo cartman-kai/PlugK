@@ -70,7 +70,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         DisableThreadLibraryCalls(hModule);
 
         // 1. 加载配置
-        pk_config_load();
+        pk_config_load(NULL);
 
         // 2. 检测版本 (此时通过读取 .text 代码段来实现)
         int ver = DetectGameVersion();
