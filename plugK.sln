@@ -14,7 +14,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugKLoader", "loader\plugK
 		{797C3467-BA8B-4639-8E09-F151BF36AA37} = {797C3467-BA8B-4639-8E09-F151BF36AA37}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "config", "config\config.vcxproj", "{797C3467-BA8B-4639-8E09-F151BF36AA37}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugKConfig", "config\config.vcxproj", "{797C3467-BA8B-4639-8E09-F151BF36AA37}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{9FA3D6BD-1EC1-3BA5-80CB-CE02773A58D5}"
+	ProjectSection(SolutionItems) = preProject
+		version_info.h = version_info.h
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

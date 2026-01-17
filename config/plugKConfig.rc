@@ -2,8 +2,9 @@
 //
 #pragma code_page(65001)
 
-#include "inc/resource.h"
+#include "resource1.h"
 #include "../version_info.h"
+
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -29,7 +30,7 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
 
 1 TEXTINCLUDE 
 BEGIN
-    "inc/resource.h\0"
+    "resource1.h\0"
 END
 
 2 TEXTINCLUDE 
@@ -54,7 +55,7 @@ END
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION VER_FILE_VERSION
- PRODUCTVERSION 0,2,5,0
+ PRODUCTVERSION 1,0,0,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -62,7 +63,7 @@ VS_VERSION_INFO VERSIONINFO
  FILEFLAGS 0x0L
 #endif
  FILEOS 0x40004L
- FILETYPE 0x2L
+ FILETYPE 0x1L
  FILESUBTYPE 0x0L
 BEGIN
     BLOCK "StringFileInfo"
@@ -70,11 +71,11 @@ BEGIN
         BLOCK "080404b0"
         BEGIN
             VALUE "CompanyName", VER_COMPANYNAME_STR
-            VALUE "FileDescription", "PlugK 刀剑封魔录系列增强补丁"
+            VALUE "FileDescription", "PlugK配置工具"
             VALUE "FileVersion", VER_FILE_VERSION
-            VALUE "InternalName", "plugK.dll"
+            VALUE "InternalName", "plugKConfig.exe"
             VALUE "LegalCopyright", VER_COPYRIGHT_STR
-            VALUE "OriginalFilename", "plugK.dll"
+            VALUE "OriginalFilename", "plugKConfig.exe"
             VALUE "ProductName", VER_PRODUCTNAME_STR
             VALUE "ProductVersion", VER_FILE_VERSION_STR
         END

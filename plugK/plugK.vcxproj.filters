@@ -63,6 +63,9 @@
     <ClInclude Include="inc\config_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\version_info.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">

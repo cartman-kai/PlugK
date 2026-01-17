@@ -29,6 +29,6 @@ X(TYPE_BOOL, enable_fuse_opt, "Experimental", "EnableFuseOpt", 1, "炼化仅扣�
 // --- 快捷键配置 (注意：默认值使用 Windows VK 宏) ---
 X(TYPE_KEY, key_stash_swap, "Hotkeys", "StashSwap", VK_OEM_COMMA, "储物箱切换 (A/B)")
 X(TYPE_KEY, key_stash_sort, "Hotkeys", "StashSort", VK_OEM_4, "储物箱整理")
-X(TYPE_KEY, key_inv_prev, "Hotkeys", "InvPrev", VK_OEM_PERIOD, "背包切换(A/B)")
+X(TYPE_KEY, key_inv_swap, "Hotkeys", "InvPrev", VK_OEM_PERIOD, "背包切换(A/B)")
 X(TYPE_KEY, key_inv_sort, "Hotkeys", "InvSort", VK_OEM_5, "背包整理 (全部)")
 X(TYPE_KEY, key_inv_sort_current, "Hotkeys", "InvSortCurrent", VK_OEM_2, "背包整理 (当前页)")
