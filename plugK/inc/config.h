@@ -3,66 +3,79 @@
 
 #include <windows.h>
 
-typedef struct
+// 增加这一段
+#ifdef __cplusplus
+extern "C"
 {
-    // 商店功能
-    BOOL shop_inf_stock;
+#endif
 
-    // [新增] 分辨率功能
-    BOOL res_enabled;
-    int res_width;
-    int res_height;
+    typedef struct
+    {
+        // 商店功能
+        BOOL shop_inf_stock;
 
-    // 1 = 开启回复类道具自动堆叠
-    BOOL stack_potion;
+        // [新增] 分辨率功能
+        BOOL res_enabled;
+        int res_width;
+        int res_height;
 
-    // 道具排序
-    BOOL inventory_sort;
+        // 1 = 开启回复类道具自动堆叠
+        BOOL stack_potion;
 
-    // [新增] 界面修正功能
-    // 打开窗口时保持画面居中，不进行平移
-    BOOL ui_keep_center;
+        // 道具排序
+        BOOL inventory_sort;
 
-    // [新增] 商店物品数量优化 (随机1-9 & 药水堆叠)
-    BOOL shop_item_count;
+        // [新增] 界面修正功能
+        // 打开窗口时保持画面居中，不进行平移
+        BOOL ui_keep_center;
 
-    // 商店物品排序
-    BOOL shop_sort;
+        // [新增] 商店物品数量优化 (随机1-9 & 药水堆叠)
+        BOOL shop_item_count;
 
-    // [新增] 扩展储物箱 (大箱子)
-    BOOL stash_ext_enabled;
+        // 商店物品排序
+        BOOL shop_sort;
 
-    // [新增] 实验性功能
-    int enable_autofill_ext; // 开启自动写入扩展页
+        // [新增] 扩展储物箱 (大箱子)
+        BOOL stash_ext_enabled;
 
-    // 宝石插入条件修改
-    int enable_insert_gem;
+        // [新增] 实验性功能
+        int enable_autofill_ext; // 开启自动写入扩展页
 
-    // 屏幕震动效果禁用
-    int disable_screen_shake;
+        // 宝石插入条件修改
+        int enable_insert_gem;
 
-    // 炼化物品数量优化
-    int enable_fuse_opt;
+        // 屏幕震动效果禁用
+        int disable_screen_shake;
 
-    // [新增] 快捷键配置 (存储 Virtual Key Code)
-    int key_inv_sort;         // 背包整理
-    int key_stash_sort;       // 储物箱整理
-    int key_inv_prev;         // 背包上一页
-    int key_inv_next;         // 背包下一页
-    int key_stash_swap;       // 储物箱切换 (A/B)
-    int key_stack_toggle;     // 叠加开关
-    int key_inv_sort_current; // 仅整理当前背包页
+        // 炼化物品数量优化
+        int enable_fuse_opt;
 
-    // 废弃
-    BOOL combo_score_fix; // 1.05 程序连击得分补正 *2
+        // [新增] 快捷键配置 (存储 Virtual Key Code)
+        int key_inv_sort;         // 背包整理
+        int key_stash_sort;       // 储物箱整理
+        int key_inv_prev;         // 背包上一页
+        int key_inv_next;         // 背包下一页
+        int key_stash_swap;       // 储物箱切换 (A/B)
+        int key_stack_toggle;     // 叠加开关
+        int key_inv_sort_current; // 仅整理当前背包页
 
-    // 废弃 物品叠加功能
-    BOOL enable_item_stack;
+        // 废弃
+        BOOL combo_score_fix; // 1.05 程序连击得分补正 *2
 
-} PK_CONFIG;
+        // 废弃 物品叠加功能
+        BOOL enable_item_stack;
 
-extern PK_CONFIG g_pk_config;
+    } PK_CONFIG;
 
-void pk_config_load();
+    extern PK_CONFIG g_pk_config;
+
+    void pk_config_load();
+
+    void pk_config_create_default(const char *path);
+
+    // 增加这一段
+#ifdef __cplusplus
+}
+#endif
 
 #endif
