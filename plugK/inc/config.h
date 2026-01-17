@@ -41,6 +41,9 @@ typedef struct
     // 屏幕震动效果禁用
     int disable_screen_shake;
 
+    // 炼化物品数量优化
+    int enable_fuse_opt;
+
     // [新增] 快捷键配置 (存储 Virtual Key Code)
     int key_inv_sort;         // 背包整理
     int key_stash_sort;       // 储物箱整理

@@ -45,6 +45,9 @@ void pk_config_create_default(const char *path)
             "\n"
             "; 实验性功能 宝石插入条件修改 1=开启 0=关闭 \n"
             "EnableGemInsert=1\n"
+            "\n"
+            "; 实验性功能 宝石合成仅扣减数量，不会全部消失  1=开启 0=关闭 \n"
+            "EnableFuseOpt=1\n"
             "\n",
             f);
         fclose(f);
@@ -104,6 +107,9 @@ void pk_config_load()
     // 宝石插入条件修改
     g_pk_config.enable_insert_gem = GetPrivateProfileIntA("Experimental", "EnableGemInsert", 0, ini_path);
 
+    // 炼化物品数量优化
+    g_pk_config.enable_fuse_opt = GetPrivateProfileIntA("Experimental", "EnableFuseOpt", 0, ini_path);
+
     // 快捷键
     g_pk_config.key_stash_swap = GetPrivateProfileIntA("Hotkeys", "StashSwap", VK_OEM_COMMA, ini_path);        // 储物箱切换  改为 Ctrl+<;
     g_pk_config.key_stash_sort = GetPrivateProfileIntA("Hotkeys", "StashSort", VK_OEM_4, ini_path);            // 储物箱整理  改为 Ctrl+[
@@ -117,5 +123,5 @@ void pk_config_load()
     // g_pk_config.combo_score_fix = GetPrivateProfileIntA("ComboScore", "EnableFix", 0, ini_path);
 
     // 存在无法扔出 宝石的 bug，暂时删除
-    // g_pk_config.enable_item_stack = GetPrivateProfileIntA("Item", "EnableStack", 0, ini_path);
+    // g_pk_config.enable_item_stack = GetPrivateProfileIntA("Item", "EnableStack", 1, ini_path);
 }

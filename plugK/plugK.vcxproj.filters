@@ -63,6 +63,9 @@
     <ClInclude Include="inc\gem_insert.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\fuse_opt.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
@@ -108,6 +111,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\gem_insert.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\fuse_opt.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
