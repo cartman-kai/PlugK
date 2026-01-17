@@ -9,6 +9,7 @@
 #include <d3d9.h>
 #include <stdio.h>
 #include <string>
+#include <shellscalingapi.h>
 
 // ImGui 头文件
 #include "imgui.h"
@@ -205,6 +206,9 @@ void HelpMarker(const char *desc)
 // 主程序入口
 int main(int, char **)
 {
+
+    SetProcessDPIAware();
+
     // 1. 初始化路径配置
     // 获取当前 EXE 所在路径，并拼凑 PlugK.ini
     char exePath[MAX_PATH];
@@ -253,7 +257,7 @@ int main(int, char **)
     // 2. 注册窗口类
     WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("PlugK Config Tool"), NULL};
     RegisterClassEx(&wc);
-    HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 配置管理工具"), WS_OVERLAPPEDWINDOW, 100, 100, 500, 700, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 配置管理工具"), WS_OVERLAPPEDWINDOW, 100, 100, 600, 800, NULL, NULL, wc.hInstance, NULL);
 
     // 3. 初始化 Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -272,9 +276,18 @@ int main(int, char **)
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
 
+    float dpiScale = 1.0f;
+    // 这里可以写个获取屏幕 DPI 的逻辑，简单起见，手动或固定设为 1.5f (150%) 测试
+    // 更好的做法是：
+    HDC hdc = GetDC(NULL);
+    if (hdc) {
+        dpiScale = GetDeviceCaps(hdc, LOGPIXELSY) / 96.0f;
+        ReleaseDC(NULL, hdc);
+    }
+
     ImFont *pFont = nullptr; // 改名避免与之前的 font 重名
 
-    // 方案 A: 尝试获取系统 Windows 目录 (更安全)
+    //尝试获取系统 Windows 目录 (更安全)
     char fontPath[MAX_PATH];
     GetWindowsDirectoryA(fontPath, MAX_PATH);
     strcat(fontPath, "\\Fonts\\msyh.ttc"); // 微软雅黑
@@ -285,7 +298,7 @@ int main(int, char **)
 
     if (fileExists)
     {
-        pFont = io.Fonts->AddFontFromFileTTF(fontPath, 18.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+        pFont = io.Fonts->AddFontFromFileTTF(fontPath, 14.0f * dpiScale, NULL, io.Fonts->GetGlyphRangesChineseFull());
     }
 
     // 方案 B: 如果微软雅黑失败，尝试宋体 (Windows 基础字体)
@@ -293,7 +306,7 @@ int main(int, char **)
     {
         GetWindowsDirectoryA(fontPath, MAX_PATH);
         strcat(fontPath, "\\Fonts\\simsun.ttc");
-        pFont = io.Fonts->AddFontFromFileTTF(fontPath, 18.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+        pFont = io.Fonts->AddFontFromFileTTF(fontPath, 14.0f * dpiScale, NULL, io.Fonts->GetGlyphRangesChineseFull());
     }
 
     // 方案 C: 如果都失败了，ImGui 会自动退回到默认的像素字体（虽然中文会是问号，但程序不会崩）
@@ -455,7 +468,7 @@ int main(int, char **)
         ImGui::Spacing();
 
         // 底部按钮栏
-        if (ImGui::Button("保存配置 (Save)", ImVec2(150, 40)))
+        if (ImGui::Button("保存配置 (Save)", ImVec2(200, 40)))
         {
             SaveConfig();
             ImGui::OpenPopup("SaveSuccess");
