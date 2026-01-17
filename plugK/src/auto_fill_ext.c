@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <MinHook.h> // 一定要引入 MinHook
 
-#pragma comment(lib, "../deps/minhook/lib/libMinHook.x86.lib")
-
 // =========================================================
 // 全局状态管理
 // =========================================================
@@ -46,6 +44,44 @@ void SwapToPageB(void *pCharBase)
     g_IsSwapped = TRUE;
 }
 
+void DirectSwapToPageB(void *pCharBase)
+{
+    if (g_IsSwapped)
+        return;
+
+    int *gameInv = (int *)((DWORD)pCharBase + 0xA4);
+
+    // 1. 直接进行原地交换 (In-place Swap)
+    // 这样即使后面 Restore 失败，数据也只是“互换了位置”
+    for (int i = 0; i < 50; i++)
+    {
+        int temp = gameInv[i];
+        gameInv[i] = g_InvPageB[i];
+        g_InvPageB[i] = temp;
+    }
+
+    g_IsSwapped = TRUE;
+}
+
+void DirectRestoreToPageA(void *pCharBase)
+{
+    if (!g_IsSwapped)
+        return;
+
+    int *gameInv = (int *)((DWORD)pCharBase + 0xA4);
+
+    // 2. 再次交换回来
+    // 如果之前成功放入了新物品，新物品现在在 gameInv 里，交换后会进入 g_InvPageB
+    for (int i = 0; i < 50; i++)
+    {
+        int temp = gameInv[i];
+        gameInv[i] = g_InvPageB[i];
+        g_InvPageB[i] = temp;
+    }
+
+    g_IsSwapped = FALSE;
+}
+
 // 还原回 A 面 (在函数彻底结束时调用)
 void RestoreToPageA(void *pCharBase)
 {
@@ -69,6 +105,14 @@ void RestoreToPageA(void *pCharBase)
 // =========================================================
 int __fastcall Detour_FindEmptySlot(void *pCharBase)
 {
+
+    // 如果发现 g_IsSwapped 依然为 TRUE，说明上一次操作可能异常中断了
+    // 强制执行一次还原，清除错误状态
+    if (g_IsSwapped)
+    {
+        DirectRestoreToPageA(pCharBase);
+    }
+
     // 1. 先让游戏在当前内存中找 (可能是 A 面，也可能是已经被换过的 B 面)
     int slot = fpOriginalFindEmptySlot(pCharBase);
 
@@ -96,11 +140,11 @@ int __fastcall Detour_FindEmptySlot(void *pCharBase)
         if (slotB != -1)
         {
             // B 面有空位！执行热交换
-            SwapToPageB(pCharBase);
+            DirectSwapToPageB(pCharBase);
 
             // 交换后，直接返回刚才找到的 slotB
             // 游戏接下来的指令会把物品写到 gameInv[slotB]
-            // 因为我们 SwapToPageB 修改了 gameInv 指向的内存，所以实际写入了 B 面
+            // 因为我们 DirectSwapToPageB 修改了 gameInv 指向的内存，所以实际写入了 B 面
             return slotB;
         }
     }
@@ -120,7 +164,7 @@ void __stdcall Cleanup_Helper()
     DWORD charBase = GetCharacterBase();
     if (charBase)
     {
-        RestoreToPageA((void *)charBase);
+        DirectRestoreToPageA((void *)charBase);
     }
 }
 

@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="minhook">
+      <UniqueIdentifier>{620da70a-f440-419b-a267-a8b425741689}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\config.h">
@@ -48,9 +51,6 @@
     <ClInclude Include="inc\input_mgr.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="inc\auto_fill_ext.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="inc\show_tips.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -64,6 +64,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\version_info.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\minhook\include\MinHook.h">
+      <Filter>minhook</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\auto_fill_ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -98,9 +104,6 @@
     <ClCompile Include="src\input_mgr.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="src\auto_fill_ext.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="src\show_tips.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -110,10 +113,18 @@
     <ClCompile Include="src\fuse_opt.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\auto_fill_ext.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="plugK.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="deps\minhook\lib\libMinHook.x86.lib">
+      <Filter>minhook</Filter>
+    </Library>
   </ItemGroup>
 </Project>

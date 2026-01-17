@@ -65,7 +65,6 @@ void Mod_Gem_Insert_Init(int game_version)
     }
 
     // 3. 执行 MinHook 安装
-    // 类似于 Golang 的 router.Use(Middleware)
 
     // 初始化 MinHook (如果在 DLL 入口或其他地方初始化过，这里可以省略)
     if (MH_Initialize() != MH_OK)
