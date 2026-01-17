@@ -96,18 +96,18 @@ BOOL IsStackable(ItemObject *pItem)
         return FALSE;
 
     DWORD id = pItem->ItemID;
-    BOOL isIdInScope = FALSE;
+    // BOOL isIdInScope = FALSE;
 
     // 1. 初步检查：ID 是否在允许堆叠的逻辑范围内
-    if (id >= 4 && id <= 15)
-        isIdInScope = TRUE;
-    else if (id >= 22 && id <= 23)
-        isIdInScope = TRUE;
-    else if (id >= 60 && id <= 77)
-        isIdInScope = TRUE;
+    // if (id >= 4 && id <= 15)
+    //     isIdInScope = TRUE;
+    // else if (id >= 22 && id <= 23)
+    //     isIdInScope = TRUE;
+    // else if (id >= 60 && id <= 77)
+    //     isIdInScope = TRUE;
 
-    if (!isIdInScope)
-        return FALSE;
+    // if (!isIdInScope)
+    //     return FALSE;
 
     // 2. 深度检查：读取内存模板数据
     __try
