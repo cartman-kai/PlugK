@@ -4,30 +4,26 @@
  */
 
 // --- 界面设置 ---
-X(TYPE_BOOL, ui_keep_center, "Interface", "KeepCenter", 1, "保持界面居中 (防晃动)")
-X(TYPE_BOOL, disable_screen_shake, "Interface", "disable_screen_shake", 1, "禁用屏幕震动")
+X(TYPE_BOOL, ui_keep_center, "UI", "KeepCenter", 1, "保持界面居中 (防晃动)")
+X(TYPE_BOOL, disable_screen_shake, "UI", "disable_screen_shake", 1, "禁用屏幕震动")
+X(TYPE_BOOL, res_enabled, "UI", "Enabled", 1, "启用自定义分辨率")
+X(TYPE_INT, res_width, "UI", "Width", 1280, "宽度 (Width)")
+X(TYPE_INT, res_height, "UI", "Height", 720, "高度 (Height)")
 
-// --- 分辨率 ---
-X(TYPE_BOOL, res_enabled, "Resolution", "Enabled", 1, "启用自定义分辨率")
-X(TYPE_INT, res_width, "Resolution", "Width", 1280, "宽度 (Width)")
-X(TYPE_INT, res_height, "Resolution", "Height", 720, "高度 (Height)")
+// --- 背包与储物箱 ---
+X(TYPE_BOOL, inventory_sort, "Inventory", "EnableSort", 1, "启用一键整理")
+X(TYPE_BOOL, stash_ext_enabled, "Inventory", "EnableExt", 1, "启用扩展存储 (大箱子)")
+X(TYPE_BOOL, enable_autofill_ext, "Inventory", "AutoFillExt", 1, "扩展背包自动填充")
 
-// --- 物品与背包 ---
-X(TYPE_BOOL, inventory_sort, "Inventory", "EnableSort", 1, "启用背包一键整理")
-X(TYPE_BOOL, stash_ext_enabled, "Stash", "EnableExt", 1, "启用扩展储物箱 (大箱子)")
+// 物品属性与商店
+X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")
+X(TYPE_BOOL, shop_inf_stock, "Item&Shop", "InfStock", 0, "无限库存 (购买不消失)")
+X(TYPE_BOOL, shop_item_count, "Item&Shop", "OptimizeItem", 1, "商店物品堆叠/随机数量")
+X(TYPE_BOOL, shop_sort, "Item&Shop", "EnableSort", 1, "商店物品自动排序")
 
-// 物品属性
-X(TYPE_BOOL, enable_gem_stack, "Item", "EnableGemStack", 1, "启用宝石叠加")
-
-// --- 商店功能 ---
-X(TYPE_BOOL, shop_inf_stock, "Shop", "InfStock", 0, "无限库存 (购买不消失)")
-X(TYPE_BOOL, shop_item_count, "Shop", "OptimizeItem", 1, "商店物品堆叠/随机数量")
-X(TYPE_BOOL, shop_sort, "Shop", "EnableSort", 1, "商店物品自动排序")
-
-// --- 实验性功能 ---
-X(TYPE_BOOL, enable_autofill_ext, "Experimental", "AutoFillExt", 1, "扩展背包自动填充")
-X(TYPE_BOOL, enable_insert_gem, "Experimental", "EnableGemInsert", 1, "修改宝石镶嵌条件")
-X(TYPE_BOOL, enable_fuse_opt, "Experimental", "EnableFuseOpt", 1, "炼化仅扣除数量")
+// --- 合成与装备 ---
+X(TYPE_BOOL, enable_insert_gem, "Equipment", "EnableGemInsert", 1, "修改宝石镶嵌条件")
+X(TYPE_BOOL, enable_fuse_opt, "Equipment", "EnableFuseOpt", 1, "优化叠加物品合成")
 
 // --- 快捷键配置 (注意：默认值使用 Windows VK 宏) ---
 X(TYPE_KEY, key_stash_swap, "Hotkeys", "StashSwap", VK_OEM_COMMA, "储物箱切换 (A/B)")

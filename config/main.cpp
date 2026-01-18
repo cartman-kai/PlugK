@@ -11,12 +11,13 @@
 #include <fstream>
 #include <sstream>
 #include <regex>
+#include <map>
 
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 
-// 引入配置
+// 引入配置结构
 extern "C"
 {
 #include "../inc/config.h"
@@ -24,13 +25,17 @@ extern "C"
 
 #pragma comment(lib, "d3d9.lib")
 
-// 全局变量
+// --- 全局变量 ---
 static LPDIRECT3D9 g_pD3D = NULL;
 static LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
 static D3DPRESENT_PARAMETERS g_d3dpp = {};
 static char g_iniPath[MAX_PATH] = {0};
 
-// 声明
+// --- 状态变量 ---
+// 用于记录当前左侧选中的分类
+static std::string g_currentTab = "UI";
+
+// --- 函数声明 ---
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
 void ResetDevice();
@@ -38,12 +43,23 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // --- 辅助功能 ---
 
-// 获取按键名称
+float GetDPIScale()
+{
+    HDC hdc = GetDC(NULL);
+    int dpi = GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(NULL, hdc);
+    // 基础缩放，如果觉得太大可以改为 / 96.0f 后再乘一个系数
+    float scale = (float)dpi / 96.0f;
+    if (scale < 1.0f)
+        scale = 1.0f;
+    return scale;
+}
+
 void GetKeyName(int key, char *buffer, int bufSize)
 {
     if (key == 0)
     {
-        snprintf(buffer, bufSize, "None");
+        snprintf(buffer, bufSize, "未设置 (None)");
         return;
     }
     unsigned int scanCode = MapVirtualKey(key, MAPVK_VK_TO_VSC);
@@ -68,24 +84,171 @@ void GetKeyName(int key, char *buffer, int bufSize)
         snprintf(buffer, bufSize, "VK_%d", key);
 }
 
-// 快捷键按钮组件
-void HotkeyButton(const char *label, int *keyVar)
+// Section 转中文显示，用于侧边栏
+const char *GetSectionTitleCN(const char *sec)
+{
+    if (strcmp(sec, "UI") == 0)
+        return "  界面显示  ";
+    if (strcmp(sec, "Inventory") == 0)
+        return "  背包与仓库  ";
+    if (strcmp(sec, "Item&Shop") == 0)
+        return "  物品与商店  ";
+    if (strcmp(sec, "Equipment") == 0)
+        return "  装备与合成  ";
+    if (strcmp(sec, "Hotkeys") == 0)
+        return "  快捷按键  ";
+    return sec;
+}
+
+// 图标辅助（如果有图标字体可以使用，这里用文字代替）
+const char *GetSectionIcon(const char *sec)
+{
+    // 简单的视觉装饰
+    return "::";
+}
+
+// --- 配置保存逻辑 ---
+void SaveConfigSafe()
+{
+    std::ifstream inFile(g_iniPath);
+    std::vector<std::string> lines;
+    std::string line;
+
+    // 如果文件存在，先读取内容
+    if (inFile.is_open())
+    {
+        while (std::getline(inFile, line))
+            lines.push_back(line);
+        inFile.close();
+    }
+
+    auto UpdateValueInLines = [&](const char *section, const char *key, int val)
+    {
+        std::string sSection = std::string("[") + section + "]";
+        bool inCorrectSection = false;
+        bool keyFound = false;
+
+        for (auto &l : lines)
+        {
+            if (l.find(sSection) != std::string::npos)
+            {
+                inCorrectSection = true;
+                continue;
+            }
+            if (inCorrectSection && l.find("[") != std::string::npos && l.find("]") != std::string::npos)
+            {
+                if (l.find(sSection) == std::string::npos)
+                    inCorrectSection = false;
+            }
+
+            if (inCorrectSection)
+            {
+                // 正则匹配 Key=Value
+                std::regex re("^\\s*" + std::string(key) + "\\s*=\\s*(-?\\d+)(.*)");
+                std::smatch match;
+                if (std::regex_search(l, match, re))
+                {
+                    char buf[256];
+                    // 保留原有注释
+                    snprintf(buf, sizeof(buf), "%s=%d%s", key, val, match[2].str().c_str());
+                    l = buf;
+                    keyFound = true;
+                    return; // 找到并更新后返回
+                }
+            }
+        }
+
+        // 如果整个循环结束都没找到该 Key（可能是新 Key），此处简化处理：
+        // 实际应用中可能需要追加到 Section 末尾，这里暂略，假设 config.c 已补全 Key。
+    };
+
+#define X(type, name, sec, key, val, desc) UpdateValueInLines(sec, key, (int)g_pk_config.name);
+#include "../inc/config_def.h"
+#undef X
+
+    std::ofstream outFile(g_iniPath);
+    for (const auto &l : lines)
+        outFile << l << "\n";
+}
+
+// --- UI 渲染相关函数 ---
+
+void SetupUIStyle(float dpiScale)
+{
+    ImGuiStyle &style = ImGui::GetStyle();
+    ImGui::StyleColorsDark();
+
+    style.WindowRounding = 8.0f;
+    style.ChildRounding = 6.0f;
+    style.FrameRounding = 4.0f;
+    style.PopupRounding = 6.0f;
+    style.GrabRounding = 4.0f;
+    style.ScrollbarSize = 12.0f;
+    style.ScrollbarRounding = 9.0f;
+
+    // 缩放间距
+    style.ItemSpacing = ImVec2(10 * dpiScale, 8 * dpiScale);
+    style.FramePadding = ImVec2(8 * dpiScale, 6 * dpiScale);
+    style.WindowPadding = ImVec2(10 * dpiScale, 10 * dpiScale);
+
+    ImVec4 *colors = style.Colors;
+    colors[ImGuiCol_WindowBg] = ImVec4(0.12f, 0.12f, 0.14f, 1.00f);
+    colors[ImGuiCol_ChildBg] = ImVec4(0.16f, 0.16f, 0.18f, 1.00f); // 稍微亮一点的子区域背景
+    colors[ImGuiCol_Header] = ImVec4(0.24f, 0.24f, 0.26f, 1.00f);
+    colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.33f, 1.00f);
+    colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    colors[ImGuiCol_Button] = ImVec4(0.22f, 0.45f, 0.65f, 1.00f); // 蓝色系按钮
+    colors[ImGuiCol_ButtonHovered] = ImVec4(0.28f, 0.55f, 0.78f, 1.00f);
+    colors[ImGuiCol_ButtonActive] = ImVec4(0.15f, 0.35f, 0.55f, 1.00f);
+    colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.98f, 0.45f, 1.00f);
+}
+
+// 渲染按键绑定按钮
+void RenderHotkeyButton(const char *label, int *keyVar)
 {
     char keyName[64];
     GetKeyName(*keyVar, keyName, sizeof(keyName));
-    char btnLabel[128];
-    snprintf(btnLabel, sizeof(btnLabel), "%s: [ %s ]###btn_%s", label, keyName, label);
 
-    if (ImGui::Button(btnLabel, ImVec2(-1, 0)))
-        ImGui::OpenPopup(label);
+    ImGui::PushID(label);
 
-    if (ImGui::BeginPopupModal(label, NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    // 使用 Child 作为一个小的 Row 来承载这一行，增加美观度
+    ImGui::BeginGroup();
+
+    ImGui::AlignTextToFramePadding();
+    ImGui::Text("%s", label);
+
+    ImGui::SameLine();
+
+    // 将按钮推到最右侧
+    float availX = ImGui::GetContentRegionAvail().x;
+    float btnWidth = 140.0f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + availX - btnWidth);
+
+    if (*keyVar != 0)
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.9f, 0.2f, 1.0f));
+
+    if (ImGui::Button(keyName, ImVec2(btnWidth, 0)))
+        ImGui::OpenPopup("BindKeyPopup");
+
+    if (*keyVar != 0)
+        ImGui::PopStyleColor();
+
+    ImGui::EndGroup();
+
+    // 悬停效果：画一个淡淡的背景框（可选优化）
+    if (ImGui::IsItemHovered())
     {
-        ImGui::Text("按下键盘按键绑定...");
-        ImGui::TextDisabled("(ESC=取消, Backspace=清除)");
-        ImGui::Separator();
+        ImGui::SetTooltip("点击修改按键");
+    }
 
-        // 简单的轮询检测
+    if (ImGui::BeginPopupModal("BindKeyPopup", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("\n请按下一个按键...\n\n");
+        ImGui::Separator();
+        ImGui::TextDisabled("ESC = 取消 | Backspace = 清除");
+
+        ImGui::Dummy(ImVec2(0, 10));
+
         for (int k = 0x08; k <= 0xFE; k++)
         {
             if (k == VK_LBUTTON || k == VK_RBUTTON || k == VK_MBUTTON)
@@ -107,93 +270,224 @@ void HotkeyButton(const char *label, int *keyVar)
                 break;
             }
         }
+
+        // 底部关闭
         if (ImGui::Button("取消", ImVec2(120, 0)))
             ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
+    ImGui::PopID();
 }
 
-// === 核心：安全保存逻辑 (保留注释) ===
-void SaveConfigSafe()
+// 分辨率预设
+struct ResPreset
 {
-    // 1. 读取所有行
-    std::ifstream inFile(g_iniPath);
-    if (!inFile.is_open())
-        return; // 文件不存在则无法保留注释，暂不处理新建情况
+    int w;
+    int h;
+    const char *label;
+};
+static const ResPreset g_resPresets[] = {
+    {1280, 720, "1280 x 720 (HD)"},
+    {1366, 768, "1366 x 768"},
+    {1440, 900, "1440 x 900"},
+    {1600, 900, "1600 x 900"},
+    {1920, 1080, "1920 x 1080 (FHD)"},
+    {2560, 1440, "2560 x 1440 (2K)"},
+    {3840, 2160, "3840 x 2160 (4K)"},
+};
 
-    std::vector<std::string> lines;
-    std::string line;
-    while (std::getline(inFile, line))
-        lines.push_back(line);
-    inFile.close();
-
-    // 2. 定义更新值的 Lambda
-    auto UpdateValueInLines = [&](const char *section, const char *key, int val)
+// 渲染右侧的具体设置内容
+// 参数 filterSection: 只渲染属于该 Section 的配置项
+void RenderContent(const char *filterSection)
+{
+    // 如果是“快捷键”页面，单独处理
+    if (strcmp(filterSection, "Hotkeys") == 0)
     {
-        std::string sSection = std::string("[") + section + "]";
-        bool inCorrectSection = false;
-        bool keyFound = false;
+        ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "快捷键配置");
+        ImGui::Separator();
+        ImGui::TextDisabled("提示：组合键需在游戏中按 Ctrl + 键位 生效");
+        ImGui::Spacing();
+        ImGui::Spacing();
 
-        for (auto &l : lines)
-        {
-            // 简单判断 Section (忽略前面的空格)
-            if (l.find(sSection) != std::string::npos)
-            {
-                inCorrectSection = true;
-                continue;
-            }
-            if (inCorrectSection && l.find("[") != std::string::npos && l.find("]") != std::string::npos)
-            {
-                if (l.find(sSection) == std::string::npos)
-                    inCorrectSection = false; // 进入了下一个 Section
-            }
+// #define TYPE_KEY 3
+#define X(type, name, sec, key, val, desc)           \
+    if (type == TYPE_KEY)                            \
+    {                                                \
+        RenderHotkeyButton(desc, &g_pk_config.name); \
+        ImGui::Separator();                          \
+    }
+#include "../inc/config_def.h"
+#undef X
+        return;
+    }
 
-            if (inCorrectSection)
-            {
-                // 正则匹配: ^(空白)Key(空白)=(空白)数字(任意后缀)
-                // 这里的正则要小心，确保只匹配 Key，而不是 KeySomething
-                std::regex re("^\\s*" + std::string(key) + "\\s*=\\s*(-?\\d+)(.*)");
-                std::smatch match;
-                if (std::regex_search(l, match, re))
-                {
-                    // 构建新行： Key = NewVal + 原有的后缀(注释)
-                    char buf[256];
-                    snprintf(buf, sizeof(buf), "%s=%d%s", key, val, match[2].str().c_str());
-                    l = buf;
-                    keyFound = true;
-                    return; // 找到即停止
-                }
-            }
-        }
+    // 常规设置页面
+    ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "%s 设置", GetSectionTitleCN(filterSection));
+    ImGui::Separator();
+    ImGui::Spacing();
 
-        // 如果没找到 Key (可能是新加的配置)，简单地在文件末尾追加 (可选)
-        // 为保持简单，这里暂不追加，依赖 pk_config_create_default 的初始化
-    };
-
-// 3. 使用 X-Macro 批量更新内存中的行
-#define TYPE_BOOL
-#define TYPE_INT
-#define TYPE_KEY
-
-#define X(type, name, sec, key, val, desc) \
-    UpdateValueInLines(sec, key, (int)g_pk_config.name);
+#define X(type, name, sec, key, val, desc)                                                            \
+    if (strcmp(sec, filterSection) == 0 && type != TYPE_KEY)                                          \
+    {                                                                                                 \
+        /* 跳过分辨率宽高，单独绘制 */                                                                \
+        if (strcmp(key, "Width") == 0 || strcmp(key, "Height") == 0)                                  \
+            goto skip_##name;                                                                         \
+                                                                                                      \
+        if (type == TYPE_BOOL)                                                                        \
+        {                                                                                             \
+            bool v = (bool)g_pk_config.name;                                                          \
+            if (ImGui::Checkbox(desc, &v))                                                            \
+                g_pk_config.name = v;                                                                 \
+                                                                                                      \
+            /* 分辨率特殊逻辑 */                                                                      \
+            if (strcmp(sec, "UI") == 0 && strcmp(key, "Enabled") == 0 && v)                           \
+            {                                                                                         \
+                ImGui::Indent(24.0f);                                                                 \
+                ImGui::Spacing();                                                                     \
+                ImGui::Text("分辨率设置:");                                                           \
+                const char *comboPreview = "自定义分辨率";                                            \
+                for (const auto &p : g_resPresets)                                                    \
+                    if (g_pk_config.res_width == p.w && g_pk_config.res_height == p.h)                \
+                        comboPreview = p.label;                                                       \
+                                                                                                      \
+                ImGui::SetNextItemWidth(300);                                                         \
+                if (ImGui::BeginCombo("##Res", comboPreview))                                         \
+                {                                                                                     \
+                    for (const auto &p : g_resPresets)                                                \
+                    {                                                                                 \
+                        bool isSel = (g_pk_config.res_width == p.w && g_pk_config.res_height == p.h); \
+                        if (ImGui::Selectable(p.label, isSel))                                        \
+                        {                                                                             \
+                            g_pk_config.res_width = p.w;                                              \
+                            g_pk_config.res_height = p.h;                                             \
+                        }                                                                             \
+                        if (isSel)                                                                    \
+                            ImGui::SetItemDefaultFocus();                                             \
+                    }                                                                                 \
+                    ImGui::EndCombo();                                                                \
+                }                                                                                     \
+                ImGui::SameLine();                                                                    \
+                ImGui::TextDisabled("  或手动输入:");                                                 \
+                                                                                                      \
+                ImGui::SetNextItemWidth(100);                                                         \
+                ImGui::InputInt("*", &g_pk_config.res_width, 0);                                      \
+                ImGui::SameLine();                                                                    \
+                ImGui::SetNextItemWidth(100);                                                         \
+                ImGui::InputInt("", &g_pk_config.res_height, 0);                                      \
+                ImGui::Unindent(24.0f);                                                               \
+                ImGui::Spacing();                                                                     \
+            }                                                                                         \
+        }                                                                                             \
+        else if (type == TYPE_INT)                                                                    \
+        {                                                                                             \
+            ImGui::InputInt(desc, &g_pk_config.name);                                                 \
+        }                                                                                             \
+        ImGui::Dummy(ImVec2(0, 5));                                                                   \
+        skip_##name :;                                                                                \
+    }
 
 #include "../inc/config_def.h"
 #undef X
-
-    // 4. 写回文件
-    std::ofstream outFile(g_iniPath);
-    for (const auto &l : lines)
-        outFile << l << "\n";
 }
+
+void RenderMainUI(ImGuiIO &io)
+{
+    // 获取当前 DPI 缩放比例
+    float dpiScale = GetDPIScale();
+
+    // --- 动态布局参数 ---
+    float sidebarWidth = 180.0f * dpiScale; // 增加基础宽度并随 DPI 缩放
+    float footerHeight = 70.0f * dpiScale;  // 底部栏高度随 DPI 缩放
+    float sidebarBtnHeight = 45.0f * dpiScale;
+    float saveBtnW = 220.0f * dpiScale;
+    float saveBtnH = 40.0f * dpiScale;
+
+    // 全屏主窗口
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("MainPanel", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    // --- 上半部分：工作区 ---
+    if (ImGui::BeginChild("WorkArea", ImVec2(0, -footerHeight), false))
+    {
+        // 1. 左侧：侧边栏
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.11f, 1.00f));
+        ImGui::BeginChild("Sidebar", ImVec2(sidebarWidth, 0), true);
+
+        //ImGui::Spacing();
+        //ImGui::TextDisabled("  配置工具  ");
+        //ImGui::Separator();
+        //ImGui::Spacing();
+
+        auto SidebarItem = [&](const char *secID)
+        {
+            bool isSelected = (g_currentTab == secID);
+            if (isSelected)
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.59f, 0.98f, 1.00f));
+
+            // 使用动态高度，并确保内容不溢出
+            if (ImGui::Button(GetSectionTitleCN(secID), ImVec2(ImGui::GetContentRegionAvail().x, sidebarBtnHeight)))
+            {
+                g_currentTab = secID;
+            }
+
+            if (isSelected)
+                ImGui::PopStyleColor();
+        };
+
+        // 修正：确保这里的 ID 与 config_def.h 中的 Section 名称完全一致
+        SidebarItem("UI");
+        SidebarItem("Inventory"); // 对应 config_def.h 中的 "Inventory"
+        SidebarItem("Item&Shop");
+        SidebarItem("Equipment"); // 对应 config_def.h 中的 "Equipment"
+        SidebarItem("Hotkeys");
+
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
+
+        // 2. 右侧：内容区
+        ImGui::BeginChild("Content", ImVec2(0, 0), true);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 10 * dpiScale));
+
+        RenderContent(g_currentTab.c_str());
+
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
+    }
+    ImGui::EndChild();
+
+    // --- 底部：操作栏 ---
+    ImGui::Separator();
+
+    // 居中计算：使用动态缩放后的尺寸
+    float availW = ImGui::GetWindowWidth();
+    float cursorX = (availW - saveBtnW) * 0.5f;
+    // 在 footer 区域内垂直居中
+    float cursorY = ImGui::GetWindowHeight() - (footerHeight + saveBtnH) * 0.5f;
+
+    ImGui::SetCursorPosX(cursorX);
+    ImGui::SetCursorPosY(cursorY);
+
+    if (ImGui::Button("保存配置 (Save)", ImVec2(saveBtnW, saveBtnH)))
+    {
+        SaveConfigSafe();
+        ImGui::OpenPopup("SaveSuccess");
+    }
+
+    // (SaveSuccess 弹窗代码保持不变...)
+    ImGui::End();
+}
+
+// --- Main 入口 ---
 
 int main(int, char **)
 {
-    // 1. HiDPI 修复：防止高分屏模糊
-    // 注意：Windows 10 1703+ 支持，旧系统可能无效果但不报错
     SetProcessDPIAware();
+    float dpiScale = GetDPIScale();
 
-    // 2. 初始化路径
+    // 初始化路径
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
     char *lastSlash = strrchr(exePath, '\\');
@@ -201,14 +495,21 @@ int main(int, char **)
         *(lastSlash + 1) = '\0';
     snprintf(g_iniPath, MAX_PATH, "%sPlugK.ini", exePath);
 
-    // 3. 加载配置 (复用 C 逻辑)
     pk_config_load(g_iniPath);
 
-    // 4. 窗口初始化
     WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("PlugK Config"), NULL};
     RegisterClassEx(&wc);
-    // 调整初始窗口大小
-    HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 配置工具"), WS_OVERLAPPEDWINDOW, 100, 100, 600, 700, NULL, NULL, wc.hInstance, NULL);
+
+    // 窗口尺寸 (调整为可变大小窗口)
+    int baseW = 680;
+    int baseH = 500;
+    int winW = (int)(baseW * dpiScale);
+    int winH = (int)(baseH * dpiScale);
+
+    // 修改：使用 WS_OVERLAPPEDWINDOW 允许调整大小
+    HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 配置工具"),
+                             WS_OVERLAPPEDWINDOW,
+                             100, 100, winW, winH, NULL, NULL, wc.hInstance, NULL);
 
     if (!CreateDeviceD3D(hwnd))
     {
@@ -220,34 +521,27 @@ int main(int, char **)
     ShowWindow(hwnd, SW_SHOWDEFAULT);
     UpdateWindow(hwnd);
 
-    // 5. ImGui 初始化
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
     (void)io;
-    // 禁止生成 imgui.ini
-    io.IniFilename = NULL;
+    io.IniFilename = NULL; // 不保存 UI 布局文件
 
-    ImGui::StyleColorsDark();
+    SetupUIStyle(dpiScale);
 
-    // 字体缩放处理 (简单方案：固定放大 1.5 倍或检测 DPI)
-    // 这里简单演示：尝试加载系统微软雅黑
+    // 字体加载
     char fontPath[MAX_PATH];
     GetWindowsDirectoryA(fontPath, MAX_PATH);
+    float fontSize = 16.0f * dpiScale;
     strcat(fontPath, "\\Fonts\\msyh.ttc");
-
     if (GetFileAttributesA(fontPath) != INVALID_FILE_ATTRIBUTES)
-    {
-        // 18.0f * 1.3f 适应稍微大一点的 DPI
-        io.Fonts->AddFontFromFileTTF(fontPath, 24.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
-    }
+        io.Fonts->AddFontFromFileTTF(fontPath, fontSize, NULL, io.Fonts->GetGlyphRangesChineseFull());
     else
     {
-        io.Fonts->AddFontDefault(); // 英文 fallback
+        ImFontConfig cfg;
+        cfg.SizePixels = 13.0f * dpiScale;
+        io.Fonts->AddFontDefault(&cfg);
     }
-
-    // 放大 UI 控件尺寸，适配高分屏
-    ImGui::GetStyle().ScaleAllSizes(1.3f);
 
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX9_Init(g_pd3dDevice);
@@ -270,112 +564,24 @@ int main(int, char **)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // --- GUI 绘制 ---
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(io.DisplaySize);
-        ImGui::Begin("Main", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-        ImGui::Text("PlugK 游戏增强配置");
-        ImGui::Separator();
-
-        if (ImGui::BeginTabBar("Tabs"))
-        {
-
-            // X-Macro 魔法：自动生成界面
-            // 我们通过定义宏来决定每个 Tab 显示什么
-
-            // --- Tab 1: 常规设置 (BOOL & INT) ---
-            if (ImGui::BeginTabItem("常规设置"))
-            {
-                ImGui::Spacing();
-
-#define TYPE_BOOL 1
-#define TYPE_INT 2
-#define TYPE_KEY 3
-
-#define X(type, name, sec, key, val, desc)        \
-    if (type == TYPE_BOOL)                        \
-    {                                             \
-        bool v = (bool)g_pk_config.name;          \
-        if (ImGui::Checkbox(desc, &v))            \
-            g_pk_config.name = v;                 \
-    }                                             \
-    else if (type == TYPE_INT)                    \
-    {                                             \
-        ImGui::InputInt(desc, &g_pk_config.name); \
-    }
-
-#include "../inc/config_def.h"
-#undef X
-#undef TYPE_BOOL
-#undef TYPE_INT
-#undef TYPE_KEY
-
-                ImGui::EndTabItem();
-            }
-
-            // --- Tab 2: 快捷键 (KEY) ---
-            if (ImGui::BeginTabItem("快捷键绑定"))
-            {
-                ImGui::Spacing();
-                ImGui::TextDisabled("点击按钮后按键修改，使用时，需要按 Ctrl 生效，例如 Ctrl + ,");
-                ImGui::Separator();
-                ImGui::Spacing();
-
-#define TYPE_BOOL 1
-#define TYPE_INT 2
-#define TYPE_KEY 3
-
-#define X(type, name, sec, key, val, desc)     \
-    if (type == TYPE_KEY)                      \
-    {                                          \
-        HotkeyButton(desc, &g_pk_config.name); \
-    }
-
-#include "../inc/config_def.h"
-#undef X
-
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-
-        ImGui::Separator();
-        ImGui::Dummy(ImVec2(0, 10));
-
-        // 居中保存按钮
-        float width = ImGui::GetWindowWidth();
-        ImGui::SetCursorPosX((width - 200) * 0.5f);
-        if (ImGui::Button("保存配置 (Save)", ImVec2(200, 50)))
-        {
-            SaveConfigSafe();
-            ImGui::OpenPopup("Saved");
-        }
-
-        if (ImGui::BeginPopup("Saved"))
-        {
-            ImGui::TextColored(ImVec4(0, 1, 0, 1), "配置已保存成功！");
-            ImGui::Text("即时生效 (部分功能需重启游戏)");
-            if (ImGui::Button("关闭"))
-                ImGui::CloseCurrentPopup();
-            ImGui::EndPopup();
-        }
-
-        ImGui::End();
-        // --- End GUI ---
+        RenderMainUI(io);
 
         ImGui::EndFrame();
+
         g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
         g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-        D3DCOLOR clear_col = D3DCOLOR_RGBA(100, 100, 100, 255);
+        // 背景色设置得深一点，防止闪烁时刺眼
+        D3DCOLOR clear_col = D3DCOLOR_RGBA(30, 30, 35, 255);
         g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col, 1.0f, 0);
+
         if (g_pd3dDevice->BeginScene() >= 0)
         {
             ImGui::Render();
             ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
             g_pd3dDevice->EndScene();
         }
+
         HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
         if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
             ResetDevice();
@@ -391,11 +597,9 @@ int main(int, char **)
     return 0;
 }
 
-// 这里的 CreateDeviceD3D 等底层函数代码保持不变，请复用之前的代码...
-// ... (CreateDeviceD3D, CleanupDeviceD3D, ResetDevice, WndProc) ...
-// 必须保留 WndProc 以处理消息
+// --- D3D 底层函数 (保持不变) ---
 bool CreateDeviceD3D(HWND hWnd)
-{ /* 复用之前的代码 */
+{
     if ((g_pD3D = Direct3DCreate9(D3D_SDK_VERSION)) == NULL)
         return false;
     ZeroMemory(&g_d3dpp, sizeof(g_d3dpp));
