@@ -1,7 +1,7 @@
 ﻿// version_info.h
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
-#define VERSION_REVISION 7
+#define VERSION_REVISION 8
 #define VERSION_BUILD 0
 
 #define STRINGIZE2(s) #s

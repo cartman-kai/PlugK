@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "shop_optimization.h"
 #include "config.h"
+#include "show_tips.h"
 #include <windows.h>
 #include <stdlib.h> // for rand(), qsort()
 
@@ -16,8 +17,16 @@ static DWORD g_Addr_ShopHook2_Ret = 0x00453AFC;
 // 2. 物品模板堆叠补丁 Hook
 static DWORD g_Addr_TemplateHook = 0x004D07FE;
 static DWORD g_Addr_TemplateRet = 0x004D0804;
-static DWORD g_Addr_TableCount = 0x00548340;
-static DWORD g_Addr_TablePtr = 0x00548344;
+static DWORD g_Addr_TableCount_02 = 0x00548340;
+static DWORD g_Addr_TablePtr_02 = 0x00548344;
+
+static DWORD g_Addr_PropMdl_TableCnt_105_01 = 0x005488BC;
+static DWORD g_Addr_PropMdl_TablePtr_105_01 = 0x005488A4;
+static DWORD g_Addr_PropMdl_TableCnt_201_01 = 0x00578E74;
+static DWORD g_Addr_PropMdl_TablePtr_201_01 = 0x00578E78;
+
+static DWORD g_Addr_PropMdl_TableCnt_01 = 0x0;
+static DWORD g_Addr_PropMdl_TablePtr_01 = 0x0;
 
 // 3. [新增] 商店排序 Hook
 // 00453A4A: mov large fs:0, ecx (7 bytes)
@@ -25,7 +34,10 @@ static DWORD g_Addr_ShopSortHook = 0x00453A4A;
 // Hook 覆盖了 7 字节，后续指令是 add esp, 60h; retn 4
 // 我们将在 Trampoline 中手动补全这些逻辑
 
-static DWORD g_Flag_ItemCanStack = 0;
+static DWORD g_Flag_ItemSetStack_02 = 0;
+static DWORD g_Flag_ItemSetStack_01 = 0;
+
+static DWORD g_Flag_GemStackStatus = 0;
 
 // ---------------------------------------------------------
 // 辅助结构体：用于排序
@@ -137,45 +149,136 @@ void PerformShopSort(DWORD shopAddress)
     }
 }
 
-// ---------------------------------------------------------
-// 内存补丁逻辑：修改回复药为可堆叠
-// ---------------------------------------------------------
-void PatchItemStackability()
+// 设置物品信息表中可叠加状态
+void SetItemStackProp(DWORD count, DWORD tableBaseAddress)
 {
-    DWORD count = *(DWORD *)g_Addr_TableCount;
-    DWORD tableBase = *(DWORD *)g_Addr_TablePtr;
-    if (count == 0 || tableBase == 0)
+    // 基础校验
+    if (count == 0 || tableBaseAddress == 0)
         return;
-
-    if (g_Flag_ItemCanStack)
-    {
-        // 已设置过，不再更新
-        return;
-    }
 
     for (DWORD i = 0; i < count; i++)
     {
-        DWORD entryAddress = tableBase + (i * 16);
+        // 关键点：tableBaseAddress 是 DWORD，这里的 + (i * 16) 是按字节增加
+        DWORD entryAddress = tableBaseAddress + (i * 16);
+
+        // 安全读取物品数据指针
         DWORD itemDataPtr = *(DWORD *)(entryAddress + 8);
         if (itemDataPtr == 0 || IsBadReadPtr((void *)itemDataPtr, 0x20))
             continue;
 
+        // 读取物品 ID (+0x04) 和 类型 (+0x08)
         DWORD itemID = *(DWORD *)(itemDataPtr + 4);
+        DWORD itemType = *(DWORD *)(itemDataPtr + 8);
+        int *pCanStack = (int *)(itemDataPtr + 0x18);
+
+        // 逻辑 A: 消耗品/药水堆叠 (ID 4-15)
         if (itemID >= 4 && itemID <= 15 && g_pk_config.shop_item_count)
         {
-            int *pCanStack = (int *)(itemDataPtr + 0x18);
             *pCanStack = 1;
         }
-        // DWORD itemType = *(DWORD *)(itemDataPtr + 8);
-        // if (itemType >= 30 && itemType <= 35)
-        // {
-        //     int *pCanStack = (int *)(itemDataPtr + 0x18);
-        //     *pCanStack = 1;
-        // }
+        // 逻辑 B: 宝石堆叠 (Type 30-35)
+        else if (itemType >= 30 && itemType <= 35 && g_pk_config.enable_gem_stack)
+        {
+            *pCanStack = 1;
+            g_Flag_GemStackStatus = 1;
+        }
+    }
+}
+
+void SetItemTableGemStack(DWORD count, DWORD tableBaseAddress, DWORD enableStack)
+{
+    // 基础校验
+    if (count == 0 || tableBaseAddress == 0)
+        return;
+
+    for (DWORD i = 0; i < count; i++)
+    {
+        // 关键点：tableBaseAddress 是 DWORD，这里的 + (i * 16) 是按字节增加
+        DWORD entryAddress = tableBaseAddress + (i * 16);
+
+        // 安全读取物品数据指针
+        DWORD itemDataPtr = *(DWORD *)(entryAddress + 8);
+        if (itemDataPtr == 0 || IsBadReadPtr((void *)itemDataPtr, 0x20))
+            continue;
+
+        // 读取物品 ID (+0x04) 和 类型 (+0x08)
+        DWORD itemID = *(DWORD *)(itemDataPtr + 4);
+        DWORD itemType = *(DWORD *)(itemDataPtr + 8);
+        int *pCanStack = (int *)(itemDataPtr + 0x18);
+
+        // 逻辑 B: 宝石堆叠 (Type 30-35)
+        if (itemType >= 30 && itemType <= 35 && g_pk_config.enable_gem_stack)
+        {
+            *pCanStack = enableStack;
+        }
+    }
+}
+
+void SetGemStackProp(DWORD enableStack)
+{
+
+    DWORD count_02 = *(DWORD *)g_Addr_TableCount_02;
+    DWORD tableBase_02 = *(DWORD *)g_Addr_TablePtr_02;
+    if (count_02 == 0 || tableBase_02 == 0)
+        return;
+
+    SetItemTableGemStack(count_02, tableBase_02, enableStack);
+
+    DWORD count_01 = *(DWORD *)g_Addr_PropMdl_TableCnt_01;
+    DWORD tableBase_01 = *(DWORD *)g_Addr_PropMdl_TablePtr_01;
+    if (count_01 == 0 || tableBase_01 == 0)
+        return;
+
+    SetItemTableGemStack(count_01, tableBase_01, enableStack);
+
+    g_Flag_GemStackStatus = enableStack;
+}
+
+void ToggleChangeGemStackProp()
+{
+    if (!g_pk_config.enable_gem_stack)
+    {
+        ShowGameLog("功能未开启");
+        return;
     }
 
-    // 设置标记，已经更新
-    g_Flag_ItemCanStack = 1;
+    if (g_Flag_GemStackStatus)
+    {
+        SetGemStackProp(0);
+        ShowGameLog("关闭宝石叠加");
+        return;
+    }
+
+    SetGemStackProp(1);
+    ShowGameLog("开启宝石叠加");
+}
+
+// ---------------------------------------------------------
+// 内存补丁逻辑：修改两个物品信息表中为可堆叠
+// ---------------------------------------------------------
+void PatchItemStackProp()
+{
+    DWORD count_02 = *(DWORD *)g_Addr_TableCount_02;
+    DWORD tableBase_02 = *(DWORD *)g_Addr_TablePtr_02;
+    if (count_02 == 0 || tableBase_02 == 0)
+        return;
+
+    if (g_Flag_ItemSetStack_02 == 0)
+    {
+        SetItemStackProp(count_02, tableBase_02);
+        g_Flag_ItemSetStack_02 = 1;
+    }
+
+    DWORD count_01 = *(DWORD *)g_Addr_PropMdl_TableCnt_01;
+    DWORD tableBase_01 = *(DWORD *)g_Addr_PropMdl_TablePtr_01;
+    if (count_01 == 0 || tableBase_01 == 0)
+        return;
+
+    if (g_Flag_ItemSetStack_01 == 0)
+    {
+        SetItemStackProp(count_01, tableBase_01);
+        g_Flag_ItemSetStack_01 = 1;
+    }
 }
 
 // ---------------------------------------------------------
@@ -186,7 +289,7 @@ __declspec(naked) void TemplateLoad_Trampoline()
     __asm {
         add esp, 0x2824
         pushad
-        call PatchItemStackability
+        call PatchItemStackProp
         popad
         ret 0x10
     }
@@ -204,7 +307,7 @@ __declspec(naked) void TemplateLoad_Trampoline_201()
 
         // 插入逻辑
         pushad
-        call PatchItemStackability
+        call PatchItemStackProp
         popad;
 
         // [v2.01 返回]
@@ -325,8 +428,8 @@ void InstallShopItemJmpHook(DWORD hookAddress, DWORD targetFunction, int len)
 void Mod_shop_opt_init(int game_version)
 {
     // 默认置空
-    g_Addr_TableCount = 0;
-    g_Addr_TablePtr = 0;
+    g_Addr_TableCount_02 = 0;
+    g_Addr_TablePtr_02 = 0;
     g_Addr_TemplateHook = 0;
     g_Addr_ShopHook1 = 0;
     g_Addr_ShopHook2 = 0;
@@ -340,8 +443,11 @@ void Mod_shop_opt_init(int game_version)
     if (game_version == 105)
     {
         // --- v1.05 地址 ---
-        g_Addr_TableCount = 0x00548340;
-        g_Addr_TablePtr = 0x00548344;
+        g_Addr_TableCount_02 = 0x00548340;
+        g_Addr_TablePtr_02 = 0x00548344;
+
+        g_Addr_PropMdl_TableCnt_01 = g_Addr_PropMdl_TableCnt_105_01;
+        g_Addr_PropMdl_TablePtr_01 = g_Addr_PropMdl_TablePtr_105_01;
 
         g_Addr_TemplateHook = 0x004D07FE;
         g_Addr_TemplateRet = 0x004D0804; // retn 10h
@@ -364,8 +470,11 @@ void Mod_shop_opt_init(int game_version)
         // --- v2.01 地址 (新增) ---
 
         // 1. 物品表信息
-        g_Addr_TableCount = 0x005788D0;
-        g_Addr_TablePtr = 0x005788D4;
+        g_Addr_TableCount_02 = 0x005788D0;
+        g_Addr_TablePtr_02 = 0x005788D4;
+
+        g_Addr_PropMdl_TableCnt_01 = g_Addr_PropMdl_TableCnt_201_01;
+        g_Addr_PropMdl_TablePtr_01 = g_Addr_PropMdl_TablePtr_201_01;
 
         // 2. 模板加载 Hook
         // 004E54F4: add esp, 2824h (6 bytes)

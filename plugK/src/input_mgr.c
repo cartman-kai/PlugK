@@ -4,6 +4,7 @@
 #include "stash_ext.h"
 #include "inv_auto_sort.h"
 #include "item_stack.h"
+#include "shop_optimization.h"
 
 static WNDPROC g_OriginalWndProc = NULL;
 static HWND g_hGameWindow = NULL;
@@ -58,6 +59,14 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                 if (g_pk_config.inventory_sort)
                 {
                     ExecuteCurrentInventorySortFlow(); // 仅整理当前背包页
+                    handled = TRUE;
+                }
+            }
+            else if (key == g_pk_config.key_switch_gem_stack)
+            {
+                if (g_pk_config.enable_gem_stack)
+                {
+                    ToggleChangeGemStackProp();
                     handled = TRUE;
                 }
             }

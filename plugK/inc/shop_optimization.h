@@ -3,4 +3,6 @@
 
 void Mod_shop_opt_init(int game_version);
 
+void ToggleChangeGemStackProp();
+
 #endif
