@@ -70,6 +70,11 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                     handled = TRUE;
                 }
             }
+            else if (key == g_pk_config.key_switch_show_item_name)
+            {
+                ToggleShowItemNameSwitch();
+                handled = TRUE;
+            }
 
             // ... 其他按键 (StashSort, StackToggle) ...
 

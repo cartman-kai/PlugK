@@ -29,6 +29,7 @@
     <ClInclude Include="inc\gem_insert.h" />
     <ClInclude Include="inc\input_mgr.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
+    <ClInclude Include="inc\item.h" />
     <ClInclude Include="inc\pch.h" />
     <ClInclude Include="inc\resolution.h" />
     <ClInclude Include="inc\resource.h" />
@@ -46,6 +47,7 @@
     <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\input_mgr.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
+    <ClCompile Include="src\item.c" />
     <ClCompile Include="src\pch.c" />
     <ClCompile Include="src\resolution.c" />
     <ClCompile Include="src\shop_inf_stock.c" />

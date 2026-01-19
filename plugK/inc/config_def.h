@@ -20,6 +20,7 @@ X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石�
 X(TYPE_BOOL, shop_inf_stock, "Item&Shop", "InfStock", 0, "无限库存 (购买不消失)")
 X(TYPE_BOOL, shop_item_count, "Item&Shop", "OptimizeItem", 1, "商店物品堆叠/随机数量")
 X(TYPE_BOOL, shop_sort, "Item&Shop", "EnableSort", 1, "商店物品自动排序")
+X(TYPE_BOOL, show_item_name, "Item&Shop", "EnableShowItemName", 1, "显示地面上物品的名称")
 
 // --- 合成与装备 ---
 X(TYPE_BOOL, enable_insert_gem, "Equipment", "EnableGemInsert", 1, "修改宝石镶嵌条件")
@@ -32,3 +33,4 @@ X(TYPE_KEY, key_inv_swap, "Hotkeys", "InvPrev", VK_OEM_PERIOD, "背包切换(A/B
 X(TYPE_KEY, key_inv_sort, "Hotkeys", "InvSort", VK_OEM_5, "背包整理 (全部)")
 X(TYPE_KEY, key_inv_sort_current, "Hotkeys", "InvSortCurrent", VK_OEM_2, "背包整理 (当前页)")
 X(TYPE_KEY, key_switch_gem_stack, "Hotkeys", "switch_gem_stack", VK_OEM_7, "切换宝石叠加开关")
+X(TYPE_KEY, key_switch_show_item_name, "Hotkeys", "key_switch_show_item_name", VK_OEM_6, "显示物品名称")

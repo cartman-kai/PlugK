@@ -12,6 +12,7 @@
 #include "show_tips.h"
 #include "gem_insert.h"
 #include "fuse_opt.h"
+#include "item.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -95,7 +96,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             Mod_Stash_Ext_Init(ver);
 
             // 自动填充扩展页面
-             Mod_Auto_Fill_Init(ver);
+            Mod_Auto_Fill_Init(ver);
 
             // 镶嵌宝石条件修改
             Mod_Gem_Insert_Init(ver);
@@ -105,6 +106,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 炼化物品数量优化
             Mod_Fuse_Count_Opt_init(ver);
+
+            // 显示物品名称
+            Mod_Show_Item_Name_Init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();
