@@ -69,19 +69,37 @@ void ToggleShowItemNameSwitch()
 
 void Mod_Show_Item_Name_Init(int game_version)
 {
-    // 目前只针对 201 版本
-    if (game_version != 201)
+    void *targetAddr_Update = NULL;
+
+    // ---------------------------------------------------------
+    // 针对 2.01 版本的地址配置
+    // ---------------------------------------------------------
+    if (game_version == 201)
+    {
+        // 原始更新函数地址 (MinHook 目标)
+        targetAddr_Update = (void *)0x0041A860;
+
+        // 显示名称函数地址 (直接调用)
+        fpShowItemName = (tShowItemName)0x0041A500;
+    }
+    // ---------------------------------------------------------
+    // 针对 1.05 版本的地址配置 [修复点]
+    // ---------------------------------------------------------
+    else if (game_version == 105)
+    {
+        // 根据你的调研结果: 00412B30
+        targetAddr_Update = (void *)0x00412B30;
+
+        // 根据你的调研结果: 004127D0
+        fpShowItemName = (tShowItemName)0x004127D0;
+    }
+    // ---------------------------------------------------------
+    // 其他版本不支持
+    // ---------------------------------------------------------
+    else
     {
         return;
     }
-
-    // 2.01 版本函数地址
-    // 物品渲染/更新函数: .rdata:00551A18 指向的 0041A860
-    void *targetAddr_Update = (void *)0x0041A860;
-
-    // 显示名称函数: 0041A500
-    // 我们不需要 Hook 它，只需要获取它的指针用来调用
-    fpShowItemName = (tShowItemName)0x0041A500;
 
     // 创建 Hook
     if (MH_CreateHook(targetAddr_Update, &Detour_ItemUpdate, (LPVOID *)&fpItemUpdate) != MH_OK)

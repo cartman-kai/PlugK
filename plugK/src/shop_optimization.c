@@ -3,7 +3,9 @@
 #include "config.h"
 #include "show_tips.h"
 #include <windows.h>
+#include <stdio.h>
 #include <stdlib.h> // for rand(), qsort()
+#include <MinHook.h>
 
 // ---------------------------------------------------------
 // 全局地址 (v1.05)
@@ -14,14 +16,11 @@ static DWORD g_Addr_ShopHook1_Ret = 0x004536D9;
 static DWORD g_Addr_ShopHook2 = 0x00453AE2;
 static DWORD g_Addr_ShopHook2_Ret = 0x00453AFC;
 
-// 2. 物品模板堆叠补丁 Hook
-static DWORD g_Addr_TemplateHook = 0x004D07FE;
-static DWORD g_Addr_TemplateRet = 0x004D0804;
 static DWORD g_Addr_TableCount_02 = 0x00548340;
 static DWORD g_Addr_TablePtr_02 = 0x00548344;
 
 static DWORD g_Addr_PropMdl_TableCnt_105_01 = 0x005488BC;
-static DWORD g_Addr_PropMdl_TablePtr_105_01 = 0x005488A4;
+static DWORD g_Addr_PropMdl_TablePtr_105_01 = 0x005488C0;
 static DWORD g_Addr_PropMdl_TableCnt_201_01 = 0x00578E74;
 static DWORD g_Addr_PropMdl_TablePtr_201_01 = 0x00578E78;
 
@@ -263,57 +262,15 @@ void PatchItemStackProp()
     if (count_02 == 0 || tableBase_02 == 0)
         return;
 
-    if (g_Flag_ItemSetStack_02 == 0)
-    {
-        SetItemStackProp(count_02, tableBase_02);
-        g_Flag_ItemSetStack_02 = 1;
-    }
+    SetItemStackProp(count_02, tableBase_02);
+    g_Flag_ItemSetStack_02 = 1;
 
     DWORD count_01 = *(DWORD *)g_Addr_PropMdl_TableCnt_01;
     DWORD tableBase_01 = *(DWORD *)g_Addr_PropMdl_TablePtr_01;
     if (count_01 == 0 || tableBase_01 == 0)
         return;
 
-    if (g_Flag_ItemSetStack_01 == 0)
-    {
-        SetItemStackProp(count_01, tableBase_01);
-        g_Flag_ItemSetStack_01 = 1;
-    }
-}
-
-// ---------------------------------------------------------
-// Template Load Hook Trampoline
-// ---------------------------------------------------------
-__declspec(naked) void TemplateLoad_Trampoline()
-{
-    __asm {
-        add esp, 0x2824
-        pushad
-        call PatchItemStackProp
-        popad
-        ret 0x10
-    }
-}
-
-// ---------------------------------------------------------
-// Template Load Hook Trampoline 2.01 version
-// ---------------------------------------------------------
-__declspec(naked) void TemplateLoad_Trampoline_201()
-{
-    __asm {
-        // [v2.01 指令]
-        // 004E54F4: add esp, 2824h
-        add esp, 0x2824
-
-        // 插入逻辑
-        pushad
-        call PatchItemStackProp
-        popad;
-
-        // [v2.01 返回]
-        // 原指令是 retn 14h (比 1.05 多 4 字节)
-        ret 0x14
-    }
+    SetItemStackProp(count_01, tableBase_01);
 }
 
 // ---------------------------------------------------------
@@ -422,6 +379,20 @@ void InstallShopItemJmpHook(DWORD hookAddress, DWORD targetFunction, int len)
     VirtualProtect((LPVOID)hookAddress, len, oldProtect, &oldProtect);
 }
 
+typedef int(__fastcall *tLoadAllData)(void *pThis, void *_edx);
+tLoadAllData fpLoadAllData = NULL;
+
+// 我们的拦截函数
+int __fastcall Detour_LoadAllData(void *pThis, void *_edx)
+{
+
+    // 1. 执行原逻辑
+    int result = fpLoadAllData(pThis, _edx);
+    PatchItemStackProp();
+
+    return result;
+}
+
 // ---------------------------------------------------------
 // Mod 初始化
 // ---------------------------------------------------------
@@ -430,28 +401,29 @@ void Mod_shop_opt_init(int game_version)
     // 默认置空
     g_Addr_TableCount_02 = 0;
     g_Addr_TablePtr_02 = 0;
-    g_Addr_TemplateHook = 0;
     g_Addr_ShopHook1 = 0;
     g_Addr_ShopHook2 = 0;
     g_Addr_ShopSortHook = 0;
 
+    void *targetAddr_LoadData = NULL;
+
     int hook1_len = 0;
     int hook2_len = 0;
-    int template_len = 0;
+
     int sort_len = 0;
 
     if (game_version == 105)
     {
         // --- v1.05 地址 ---
+
+        // 加载函数
+        targetAddr_LoadData = (void *)0x00405300;
+
         g_Addr_TableCount_02 = 0x00548340;
         g_Addr_TablePtr_02 = 0x00548344;
 
         g_Addr_PropMdl_TableCnt_01 = g_Addr_PropMdl_TableCnt_105_01;
         g_Addr_PropMdl_TablePtr_01 = g_Addr_PropMdl_TablePtr_105_01;
-
-        g_Addr_TemplateHook = 0x004D07FE;
-        g_Addr_TemplateRet = 0x004D0804; // retn 10h
-        template_len = 6;                // add esp, 2824h
 
         g_Addr_ShopHook1 = 0x004536BF;
         g_Addr_ShopHook1_Ret = 0x004536D9;
@@ -469,19 +441,14 @@ void Mod_shop_opt_init(int game_version)
     {
         // --- v2.01 地址 (新增) ---
 
+        targetAddr_LoadData = (void *)0x0040C290;
+
         // 1. 物品表信息
         g_Addr_TableCount_02 = 0x005788D0;
         g_Addr_TablePtr_02 = 0x005788D4;
 
         g_Addr_PropMdl_TableCnt_01 = g_Addr_PropMdl_TableCnt_201_01;
         g_Addr_PropMdl_TablePtr_01 = g_Addr_PropMdl_TablePtr_201_01;
-
-        // 2. 模板加载 Hook
-        // 004E54F4: add esp, 2824h (6 bytes)
-        // 004E54FA: retn 14h
-        g_Addr_TemplateHook = 0x004E54F4;
-        g_Addr_TemplateRet = 0x004E54FA;
-        template_len = 6;
 
         // 3. 商店数量随机化 Hook 1
         // 0045F7EF: cmp eax, 14h (3 bytes)
@@ -505,19 +472,25 @@ void Mod_shop_opt_init(int game_version)
         return; // 不支持的版本
     }
 
-    // 1. 模板堆叠补丁 (v1.05 & v2.01)
-    if (g_Addr_TemplateHook != 0)
+    // 1. 堆叠补丁 (v1.05 & v2.01)
+    // 执行 Hook
+    if (targetAddr_LoadData != NULL)
     {
-        // 注意：v2.01 的 TemplateRet 是 retn 14h，v1.05 是 retn 10h
-        // TemplateLoad_Trampoline 需要微调以支持动态 retn，或者针对 2.01 写个新的 trampoline
-        // 简单地为 v2.01 写一个单独的 Trampoline。
-        if (game_version == 201)
+        // 1. 检查 Hook 创建结果
+        MH_STATUS statusCreate = MH_CreateHook(targetAddr_LoadData, &Detour_LoadAllData, (LPVOID *)&fpLoadAllData);
+        if (statusCreate != MH_OK)
         {
-            InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline_201, template_len);
+            char err[256];
+            sprintf_s(err, sizeof(err), "PlugK: Hook Create Failed! Error Code: %d", statusCreate);
+            MessageBoxA(NULL, err, "Hook Error", MB_ICONERROR);
+            return;
         }
-        else
+
+        // 2. 检查 Hook 启用结果
+        MH_STATUS statusEnable = MH_EnableHook(targetAddr_LoadData);
+        if (statusEnable != MH_OK)
         {
-            InstallShopItemJmpHook(g_Addr_TemplateHook, (DWORD)TemplateLoad_Trampoline, template_len);
+            MessageBoxA(NULL, "PlugK: Hook Enable Failed!", "Hook Error", MB_ICONERROR);
         }
     }
 

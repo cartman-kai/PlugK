@@ -221,9 +221,6 @@ void Mod_Auto_Fill_Init(int ver)
         targetFuncExit = (LPVOID)0x0048DDAA;
     }
 
-    if (MH_Initialize() != MH_OK)
-        return;
-
     // 1. Hook FindEmptySlot
     if (MH_CreateHook(targetFindSlot, &Detour_FindEmptySlot, (LPVOID *)&fpOriginalFindEmptySlot) != MH_OK)
     {

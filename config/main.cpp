@@ -17,6 +17,8 @@
 #include "imgui_impl_dx9.h"
 #include "imgui_impl_win32.h"
 
+#include "version_info.h"
+
 // 引入配置结构
 extern "C"
 {
@@ -414,10 +416,12 @@ void RenderMainUI(ImGuiIO &io)
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.11f, 1.00f));
         ImGui::BeginChild("Sidebar", ImVec2(sidebarWidth, 0), true);
 
-        //ImGui::Spacing();
-        //ImGui::TextDisabled("  配置工具  ");
-        //ImGui::Separator();
-        //ImGui::Spacing();
+        ImGui::Spacing();
+        char versionText[64];
+        snprintf(versionText, sizeof(versionText), "配置工具版本 v%s", VER_FILE_VERSION_STR);
+        ImGui::TextDisabled("%s", versionText);
+        ImGui::Separator();
+        ImGui::Spacing();
 
         auto SidebarItem = [&](const char *secID)
         {

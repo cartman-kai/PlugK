@@ -8,7 +8,7 @@
 #include "shop_optimization.h"
 #include "stash_ext.h"
 #include "input_mgr.h"
-// #include "auto_fill_ext.h"
+#include "auto_fill_ext.h"
 #include "show_tips.h"
 #include "gem_insert.h"
 #include "fuse_opt.h"
@@ -79,6 +79,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         // 3. 根据版本应用补丁
         if (ver != VER_UNKNOWN)
         {
+            if (MH_Initialize() != MH_OK)
+                return;
+
             // 左侧文字提醒
             Mod_show_tips_init(ver);
             // 商店回复、暗器卖出不消失
