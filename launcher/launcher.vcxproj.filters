@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\plugK\src\config.c" />
+    <ClCompile Include="deps\imgui\backends\imgui_impl_dx9.cpp" />
+    <ClCompile Include="deps\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="deps\imgui\imgui.cpp" />
+    <ClCompile Include="deps\imgui\imgui_draw.cpp" />
+    <ClCompile Include="deps\imgui\imgui_tables.cpp" />
+    <ClCompile Include="deps\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\config_manager.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\mod_loader.cpp" />
+    <ClCompile Include="src\ui_manager.cpp" />
+    <ClCompile Include="src\utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\plugK\inc\config.h" />
+    <ClInclude Include="..\plugK\inc\config_def.h" />
+    <ClInclude Include="..\version_info.h" />
+    <ClInclude Include="inc\config_manager.h" />
+    <ClInclude Include="inc\mod_loader.h" />
+    <ClInclude Include="inc\ui_manager.h" />
+    <ClInclude Include="inc\utils.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="deps\imgui\backends\imgui_impl_dx9.h" />
+    <ClInclude Include="deps\imgui\backends\imgui_impl_win32.h" />
+    <ClInclude Include="deps\imgui\imgui.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="launcher.rc" />
+  </ItemGroup>
+</Project>

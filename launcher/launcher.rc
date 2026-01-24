@@ -2,35 +2,23 @@
 //
 #pragma code_page(65001)
 
-#include "resource1.h"
+#include "resource.h"
 #include "../version_info.h"
 
-
 #define APSTUDIO_READONLY_SYMBOLS
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 2 resource.
-//
 #include "winres.h"
-
-/////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 中文(简体，中国) resources
+// Chinese (Simplified, China) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
 LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
 
 #ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
 1 TEXTINCLUDE 
 BEGIN
-    "resource1.h\0"
+    "resource.h\0"
 END
 
 2 TEXTINCLUDE 
@@ -44,8 +32,16 @@ BEGIN
     "\r\n"
     "\0"
 END
-
 #endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "res\\launcher.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -55,7 +51,7 @@ END
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION VER_FILE_VERSION
- PRODUCTVERSION 1,0,0,1
+ PRODUCTVERSION VER_FILE_VERSION
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,11 +67,11 @@ BEGIN
         BLOCK "080404b0"
         BEGIN
             VALUE "CompanyName", VER_COMPANYNAME_STR
-            VALUE "FileDescription", "PlugK配置工具"
-            VALUE "FileVersion", VER_FILE_VERSION
-            VALUE "InternalName", "plugKConfig.exe"
+            VALUE "FileDescription", "PlugK 游戏启动器"
+            VALUE "FileVersion", VER_FILE_VERSION_STR
+            VALUE "InternalName", "PlugKLauncher.exe"
             VALUE "LegalCopyright", VER_COPYRIGHT_STR
-            VALUE "OriginalFilename", "plugKConfig.exe"
+            VALUE "OriginalFilename", "PlugKLauncher.exe"
             VALUE "ProductName", VER_PRODUCTNAME_STR
             VALUE "ProductVersion", VER_FILE_VERSION_STR
         END
@@ -86,18 +82,5 @@ BEGIN
     END
 END
 
-#endif    // 中文(简体，中国) resources
+#endif    // Chinese (Simplified, China) resources
 /////////////////////////////////////////////////////////////////////////////
-
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
-
