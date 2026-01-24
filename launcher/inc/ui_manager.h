@@ -14,4 +14,8 @@ namespace UIManager {
     // UI Helpers
     void SetupStyles(float dpiScale);
     void ShowSaveNotification(const char* text);
+    
+    // Dynamic window size based on current view
+    // Returns true if window size should change, and fills width/height
+    bool GetDesiredWindowSize(int* outWidth, int* outHeight);
 }

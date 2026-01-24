@@ -72,8 +72,8 @@ int main(int argc, char **argv)
     WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("PlugKLauncher"), NULL};
     RegisterClassEx(&wc);
 
-    int winW = (int)(750 * dpiScale);
-    int winH = (int)(550 * dpiScale);
+    int winW = (int)(480 * dpiScale);  // Home view size
+    int winH = (int)(380 * dpiScale);
 
     HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 游戏启动器"), WS_OVERLAPPEDWINDOW, 100, 100, winW, winH, NULL, NULL, wc.hInstance, NULL);
 
@@ -117,6 +117,26 @@ int main(int argc, char **argv)
         }
         if (done)
             break;
+
+        // Dynamic window size based on current view
+        int newW, newH;
+        if (UIManager::GetDesiredWindowSize(&newW, &newH))
+        {
+            // Get current window rect to calculate border/title size
+            RECT clientRect, windowRect;
+            GetClientRect(hwnd, &clientRect);
+            GetWindowRect(hwnd, &windowRect);
+            int borderW = (windowRect.right - windowRect.left) - clientRect.right;
+            int borderH = (windowRect.bottom - windowRect.top) - clientRect.bottom;
+            
+            // Center the new window position
+            int screenW = GetSystemMetrics(SM_CXSCREEN);
+            int screenH = GetSystemMetrics(SM_CYSCREEN);
+            int posX = (screenW - (newW + borderW)) / 2;
+            int posY = (screenH - (newH + borderH)) / 2;
+            
+            SetWindowPos(hwnd, NULL, posX, posY, newW + borderW, newH + borderH, SWP_NOZORDER);
+        }
 
         ImGui_ImplDX9_NewFrame();
         ImGui_ImplWin32_NewFrame();
