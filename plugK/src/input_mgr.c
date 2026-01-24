@@ -67,6 +67,7 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                 if (g_pk_config.enable_gem_stack)
                 {
                     ToggleChangeGemStackProp();
+                    ToggleItemStackState();
                     handled = TRUE;
                 }
             }

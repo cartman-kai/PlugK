@@ -27,9 +27,11 @@
     <ClInclude Include="inc\framework.h" />
     <ClInclude Include="inc\fuse_opt.h" />
     <ClInclude Include="inc\gem_insert.h" />
+    <ClInclude Include="inc\inheritance.h" />
     <ClInclude Include="inc\input_mgr.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
     <ClInclude Include="inc\item.h" />
+    <ClInclude Include="inc\item_stack.h" />
     <ClInclude Include="inc\pch.h" />
     <ClInclude Include="inc\resolution.h" />
     <ClInclude Include="inc\resource.h" />
@@ -45,9 +47,11 @@
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\fuse_opt.c" />
     <ClCompile Include="src\gem_insert.c" />
+    <ClCompile Include="src\inheritance.c" />
     <ClCompile Include="src\input_mgr.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
     <ClCompile Include="src\item.c" />
+    <ClCompile Include="src\item_stack.c" />
     <ClCompile Include="src\pch.c" />
     <ClCompile Include="src\resolution.c" />
     <ClCompile Include="src\shop_inf_stock.c" />
@@ -115,6 +119,18 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)build\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>

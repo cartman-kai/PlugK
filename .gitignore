@@ -430,3 +430,12 @@ FodyWeavers.xsd
 # custom dir
 tmp/
 temp/
+
+# Build residuals
+RCa*
+*.aps
+*.vcxproj.user
+
+# agent 
+
+.agent/

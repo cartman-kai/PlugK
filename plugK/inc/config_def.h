@@ -6,6 +6,7 @@
 // --- 界面设置 ---
 X(TYPE_BOOL, ui_keep_center, "UI", "KeepCenter", 1, "保持界面居中 (防晃动)")
 X(TYPE_BOOL, disable_screen_shake, "UI", "disable_screen_shake", 1, "禁用屏幕震动")
+X(TYPE_BOOL, enable_fix_inheritance, "UI", "enable_fix_inheritance", 1, "通关后存档继承优化- 真正的战斗 与 英雄无悔 难度可继承")
 X(TYPE_BOOL, res_enabled, "UI", "Enabled", 1, "启用自定义分辨率")
 X(TYPE_INT, res_width, "UI", "Width", 1280, "宽度 (Width)")
 X(TYPE_INT, res_height, "UI", "Height", 720, "高度 (Height)")

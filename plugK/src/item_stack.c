@@ -1,6 +1,7 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "item_stack.h"
 #include "config.h"
+#include "show_tips.h"
 #include <stdio.h>
 
 // --------------------------------------------------------
@@ -53,16 +54,12 @@ void ApplyItemStackPatch(BOOL enable)
         // 开启：写入更宽的范围
         MemoryPatchByte(g_Addr_MinCmp, CMP_OFFSET, PATCH_MIN);
         MemoryPatchByte(g_Addr_MaxCmp, CMP_OFFSET, PATCH_MAX);
-        // 提示音：高音代表开启
-        Beep(800, 100);
     }
     else
     {
         // 关闭：还原为原始游戏数值
         MemoryPatchByte(g_Addr_MinCmp, CMP_OFFSET, ORIG_MIN);
         MemoryPatchByte(g_Addr_MaxCmp, CMP_OFFSET, ORIG_MAX);
-        // 提示音：低音代表关闭
-        Beep(400, 100);
     }
 }
 
@@ -71,10 +68,6 @@ void ApplyItemStackPatch(BOOL enable)
 // --------------------------------------------------------
 void ToggleItemStackState()
 {
-    // 如果 config 里完全禁用了该功能，则快捷键无效
-    if (!g_pk_config.enable_item_stack)
-        return;
-
     g_bIsItemStackActive = !g_bIsItemStackActive;
     ApplyItemStackPatch(g_bIsItemStackActive);
 }
@@ -87,7 +80,7 @@ void Mod_item_stack_init(int game_version)
     // 即使 config 开启，初始状态也设为 FALSE (默认关闭)
     // 只有按下快捷键才激活
     g_CurrentVersion = game_version;
-    g_bIsItemStackActive = FALSE;
+    g_bIsItemStackActive = g_pk_config.enable_gem_stack;
 
     if (game_version == 105)
     {
@@ -104,6 +97,8 @@ void Mod_item_stack_init(int game_version)
         g_Addr_MinCmp = 0;
         g_Addr_MaxCmp = 0;
     }
+
+    ApplyItemStackPatch(g_bIsItemStackActive);
 
     // 初始化时不执行 Patch，因为默认是关闭的 (Original Values 本来就在内存里)
     // 如果你希望 config=true 时启动即开启，可以在这里调用 ApplyItemStackPatch(TRUE);

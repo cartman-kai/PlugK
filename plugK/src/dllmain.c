@@ -13,6 +13,7 @@
 #include "gem_insert.h"
 #include "fuse_opt.h"
 #include "item.h"
+#include "inheritance.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -112,6 +113,12 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 显示物品名称
             Mod_Show_Item_Name_Init(ver);
+
+            // 物品自动叠加
+            Mod_item_stack_init(ver);
+
+            // 通关继承优化
+            Mod_SaveInheritance_Init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();
