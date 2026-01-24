@@ -19,8 +19,6 @@
 #include "../inc/mod_loader.h"
 #include "../inc/utils.h"
 
-
-
 #pragma comment(lib, "d3d9.lib")
 
 // --- Globals ---
@@ -34,13 +32,18 @@ void CleanupDeviceD3D();
 void ResetDevice();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
     // Check command line args
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--mod") == 0) {
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--mod") == 0)
+        {
             ModLoader::LaunchWithMod();
             return 0;
-        } else if (strcmp(argv[i], "--original") == 0) {
+        }
+        else if (strcmp(argv[i], "--original") == 0)
+        {
             ModLoader::LaunchOriginal();
             return 0;
         }
@@ -52,19 +55,21 @@ int main(int argc, char** argv) {
     // Setup paths
     char exePath[MAX_PATH];
     GetModuleFileNameA(NULL, exePath, MAX_PATH);
-    char* lastSlash = strrchr(exePath, '\\');
-    if (lastSlash) *(lastSlash + 1) = '\0';
+    char *lastSlash = strrchr(exePath, '\\');
+    if (lastSlash)
+        *(lastSlash + 1) = '\0';
     std::string iniPath = std::string(exePath) + "PlugK.ini";
 
     // Initialize Config
     ConfigManager::Initialize(iniPath);
-    if (ConfigManager::NeedsGeneration()) {
+    if (ConfigManager::NeedsGeneration())
+    {
         ConfigManager::GenerateDefault(iniPath);
         ConfigManager::Initialize(iniPath); // Reload
     }
 
     // Register class
-    WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("PlugKLauncher"), NULL };
+    WNDCLASSEX wc = {sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("PlugKLauncher"), NULL};
     RegisterClassEx(&wc);
 
     int winW = (int)(750 * dpiScale);
@@ -72,7 +77,8 @@ int main(int argc, char** argv) {
 
     HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 游戏启动器"), WS_OVERLAPPEDWINDOW, 100, 100, winW, winH, NULL, NULL, wc.hInstance, NULL);
 
-    if (!CreateDeviceD3D(hwnd)) {
+    if (!CreateDeviceD3D(hwnd))
+    {
         CleanupDeviceD3D();
         UnregisterClass(wc.lpszClassName, wc.hInstance);
         return 1;
@@ -83,7 +89,7 @@ int main(int argc, char** argv) {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
     io.IniFilename = NULL;
 
     UIManager::Initialize(hwnd, dpiScale);
@@ -99,14 +105,18 @@ int main(int argc, char** argv) {
     ImGui_ImplDX9_Init(g_pd3dDevice);
 
     bool done = false;
-    while (!done) {
+    while (!done)
+    {
         MSG msg;
-        while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
+        while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+        {
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT) done = true;
+            if (msg.message == WM_QUIT)
+                done = true;
         }
-        if (done) break;
+        if (done)
+            break;
 
         ImGui_ImplDX9_NewFrame();
         ImGui_ImplWin32_NewFrame();
@@ -117,7 +127,8 @@ int main(int argc, char** argv) {
         ImGui::EndFrame();
 
         g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_RGBA(30, 30, 35, 255), 1.0f, 0);
-        if (g_pd3dDevice->BeginScene() >= 0) {
+        if (g_pd3dDevice->BeginScene() >= 0)
+        {
             ImGui::Render();
             ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
             g_pd3dDevice->EndScene();
@@ -139,8 +150,10 @@ int main(int argc, char** argv) {
 }
 
 // --- D3D Helpers ---
-bool CreateDeviceD3D(HWND hWnd) {
-    if ((g_pD3D = Direct3DCreate9(D3D_SDK_VERSION)) == NULL) return false;
+bool CreateDeviceD3D(HWND hWnd)
+{
+    if ((g_pD3D = Direct3DCreate9(D3D_SDK_VERSION)) == NULL)
+        return false;
     ZeroMemory(&g_d3dpp, sizeof(g_d3dpp));
     g_d3dpp.Windowed = TRUE;
     g_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
@@ -153,30 +166,45 @@ bool CreateDeviceD3D(HWND hWnd) {
     return true;
 }
 
-void CleanupDeviceD3D() {
-    if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = NULL; }
-    if (g_pD3D) { g_pD3D->Release(); g_pD3D = NULL; }
+void CleanupDeviceD3D()
+{
+    if (g_pd3dDevice)
+    {
+        g_pd3dDevice->Release();
+        g_pd3dDevice = NULL;
+    }
+    if (g_pD3D)
+    {
+        g_pD3D->Release();
+        g_pD3D = NULL;
+    }
 }
 
-void ResetDevice() {
+void ResetDevice()
+{
     ImGui_ImplDX9_InvalidateDeviceObjects();
     g_pd3dDevice->Reset(&g_d3dpp);
     ImGui_ImplDX9_CreateDeviceObjects();
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) return true;
-    switch (msg) {
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+        return true;
+    switch (msg)
+    {
     case WM_SIZE:
-        if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED) {
+        if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
+        {
             g_d3dpp.BackBufferWidth = LOWORD(lParam);
             g_d3dpp.BackBufferHeight = HIWORD(lParam);
             ResetDevice();
         }
         return 0;
     case WM_SYSCOMMAND:
-        if ((wParam & 0xfff0) == SC_KEYMENU) return 0;
+        if ((wParam & 0xfff0) == SC_KEYMENU)
+            return 0;
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
