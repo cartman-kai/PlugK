@@ -24,12 +24,10 @@ static DWORD g_RetAddr_Exit = 0;
 
 // 1.05 地址
 #define ADDR_105_SAVE_HOOK 0x004815BA
-#define ADDR_105_LOAD_HOOK 0x00481B2A
 #define ADDR_105_EXIT_HOOK 0x004AD015
 
 // 2.01 地址 (根据您的调研)
 #define ADDR_201_SAVE_HOOK 0x00461B80
-#define ADDR_201_LOAD_HOOK 0x00490953
 #define ADDR_201_EXIT_HOOK 0x004BFDC5
 
 // 内存偏移
@@ -223,13 +221,13 @@ void SwapData(DWORD offset, int *cachePage, int *pageIndex)
 void ToggleStash()
 {
     SwapData(OFFSET_STASH_ARR, g_StashPageB, &g_CurrentStashPage);
-    ShowGameLog("[储物箱] 切换成功");
+    SendGameTips("[储物箱] 切换成功");
 }
 
 void ToggleInventory()
 {
     SwapData(OFFSET_INV_ARR, g_InvPageB, &g_CurrentInvPage);
-    ShowGameLog("[背包] 切换成功");
+    SendGameTips("[背包] 切换成功");
 }
 
 // ---------------------------------------------------------
@@ -250,23 +248,6 @@ void __declspec(naked) Hook_105_Save()
         popad;
         mov eax, 1
         jmp g_RetAddr_Save
-    }
-}
-
-void __declspec(naked) Hook_105_Load()
-{
-    __asm {
-        pushad
-        pushfd
-        lea eax, [esp + 0x90] // 0x6C + 0x24
-        mov eax, [eax]
-        push eax
-        call ProcessLoadExt
-        add esp, 4
-        popfd
-        popad
-        mov eax, 1
-        jmp g_RetAddr_Load
     }
 }
 
@@ -323,32 +304,6 @@ void __declspec(naked) Hook_201_Save()
     }
 }
 
-// Hook @ 00490953 (Load)
-// 此时 ESP+78 (0x4E) 是路径
-// 0x4E + 0x24 = 0x72 (注意: 78h 是 hex, 0x78)
-// 0x78 + 0x24 = 0x9C
-void __declspec(naked) Hook_201_Load()
-{
-    __asm {
-        pushad
-        pushfd
-        lea eax, [esp + 0x9C]
-        mov eax, [eax]
-        push eax
-        call ProcessLoadExt
-        add esp, 4
-        popfd
-        popad
-
-                // 恢复原指令
-                // mov ecx,dword ptr ss:[esp+44]
-        mov ecx, dword ptr ss:[esp+0x44]
-        pop edi
-        
-        jmp g_RetAddr_Load
-    }
-}
-
 // Hook @ 004BFDC5 (Exit)
 // 原指令: mov dword ptr ds:[578938], 2 (10 bytes: C7 05 38 89 57 00 02 00 00 00)
 void __declspec(naked) Hook_201_Exit()
@@ -369,9 +324,91 @@ void __declspec(naked) Hook_201_Exit()
 }
 
 // ---------------------------------------------------------
-// 初始化
+// MinHook 定义与实现
 // ---------------------------------------------------------
 
+// ---------------------------------------------------------
+// Load Hook - 调用点替换方式
+// ---------------------------------------------------------
+
+// 原始 Load 函数地址 (版本相关)
+static DWORD g_OriginalLoadFunc = 0;
+
+// 调用点 Hook 地址 (需要修补 call 指令的位置)
+#define ADDR_105_LOAD_CALL 0x004558AC // call 4815D0 的位置
+#define ADDR_201_LOAD_CALL 0x00461D1C // call 490400 的位置
+
+// 原始函数地址
+#define ADDR_105_LOAD_FUNC 0x004815D0
+#define ADDR_201_LOAD_FUNC 0x00490400
+
+// Naked 包装函数 - 替代原调用点的 call 目标
+// 调用约定：__thiscall (ECX = this, 栈上有参数)
+//
+// 在 call 我们的函数时，栈布局：
+//   [ESP+0]  = 返回地址 (004558B1 或 00461D21)
+//   [ESP+4]  = pStream (由 push esi 压入)
+//   [ESP+8]  = 调用者栈上的某个值
+//   [ESP+C]  = 存档名称字符串指针 ← 我们需要的
+// ECX = pThis (this 指针)
+//
+// 原函数是 ret 4，所以我们也要 ret 4 来平衡栈
+void __declspec(naked) Wrapper_GameFile_Load(void)
+{
+    __asm {
+        // === 1. 调用原始 Load 函数 ===
+        // 原函数期望：ECX = this, [ESP+4] = pStream (在 call 之后)
+        // 当前栈：[ret][pStream][...][savename]
+        // 我们需要做的是：转发调用到原函数
+
+        // 保存存档名指针 (从 ESP+C 读取，保存到 EDX 临时使用)
+        // 注意：在进入此函数时 [ESP] = 返回地址
+        mov edx, dword ptr [esp + 0x0C]
+        push edx // 把存档名压栈保存
+
+                   // 调用原函数
+                   // 需要重新压入 pStream 参数给原函数
+        mov eax, dword ptr [esp + 0x08] // [ESP+4+4] = 原始 pStream (因为我们压了 4 字节)
+        push eax // 压入 pStream
+
+            // ECX 已经是 this 指针，不需要修改
+            // 调用原函数 (间接调用，通过全局变量)
+        call g_OriginalLoadFunc
+                // 原函数执行 ret 4，会清理我们 push 的 pStream
+                // 返回值在 EAX
+
+                // === 2. 检查返回值 ===
+        cmp eax, 1
+        jne skip_ext_load
+
+            // === 3. EAX == 1，调用 ProcessLoadExt ===
+            // 保存 EAX (返回值)
+        push eax
+
+                // 此时栈顶是 EAX，下面是我们保存的存档名指针
+                // [ESP] = EAX (返回值)
+                // [ESP+4] = 存档名指针
+
+                // 获取存档名并调用 ProcessLoadExt
+        mov eax, dword ptr [esp + 4] // 获取存档名指针
+        push eax // 作为参数压栈
+        call ProcessLoadExt
+        add esp, 4 // 清理参数 (cdecl)
+
+        // 恢复返回值
+        pop eax
+        
+skip_ext_load:
+        // === 4. 清理并返回 ===
+        // 弹出我们保存的存档名指针
+        add esp, 4
+
+        // 模拟原函数行为：ret 4 (清理调用者压入的 pStream)
+        ret 4
+    }
+}
+
+// 安装 JMP Hook 的辅助函数 (用于 Save 和 Exit)
 void InstallStashExtJmp(DWORD addr, void *func, DWORD *ret, int len)
 {
     DWORD old;
@@ -384,6 +421,24 @@ void InstallStashExtJmp(DWORD addr, void *func, DWORD *ret, int len)
     VirtualProtect((void *)addr, len, old, &old);
 }
 
+// 修补 call 指令的辅助函数 (用于 Load)
+static void PatchCallInstruction(DWORD callAddr, void *newTarget)
+{
+    DWORD old;
+    VirtualProtect((void *)callAddr, 5, PAGE_EXECUTE_READWRITE, &old);
+
+    // call 指令格式：E8 [相对偏移32位]
+    // 相对偏移 = 目标地址 - (call指令地址 + 5)
+    DWORD relOffset = (DWORD)newTarget - (callAddr + 5);
+    *(DWORD *)(callAddr + 1) = relOffset;
+
+    VirtualProtect((void *)callAddr, 5, old, &old);
+}
+
+// ---------------------------------------------------------
+// 初始化
+// ---------------------------------------------------------
+
 void Mod_Stash_Ext_Init(int ver)
 {
     if (!g_pk_config.stash_ext_enabled)
@@ -394,14 +449,22 @@ void Mod_Stash_Ext_Init(int ver)
 
     if (ver == 105)
     {
+        // Save & Exit Hooks (保持原有逻辑)
         InstallStashExtJmp(ADDR_105_SAVE_HOOK, Hook_105_Save, &g_RetAddr_Save, 5);
-        InstallStashExtJmp(ADDR_105_LOAD_HOOK, Hook_105_Load, &g_RetAddr_Load, 5);
         InstallStashExtJmp(ADDR_105_EXIT_HOOK, Hook_105_Exit, &g_RetAddr_Exit, 10);
+
+        // --- Load Hook: 调用点替换 ---
+        g_OriginalLoadFunc = ADDR_105_LOAD_FUNC;
+        PatchCallInstruction(ADDR_105_LOAD_CALL, Wrapper_GameFile_Load);
     }
     else if (ver == 201)
     {
+        // Save & Exit Hooks (保持原有逻辑)
         InstallStashExtJmp(ADDR_201_SAVE_HOOK, Hook_201_Save, &g_RetAddr_Save, 6);
-        InstallStashExtJmp(ADDR_201_LOAD_HOOK, Hook_201_Load, &g_RetAddr_Load, 5);
         InstallStashExtJmp(ADDR_201_EXIT_HOOK, Hook_201_Exit, &g_RetAddr_Exit, 10);
+
+        // --- Load Hook: 调用点替换 ---
+        g_OriginalLoadFunc = ADDR_201_LOAD_FUNC;
+        PatchCallInstruction(ADDR_201_LOAD_CALL, Wrapper_GameFile_Load);
     }
 }

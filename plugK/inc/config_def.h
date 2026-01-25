@@ -3,7 +3,7 @@
  * 类型支持: TYPE_BOOL, TYPE_INT, TYPE_KEY
  */
 
- // --- 界面设置 ---
+// --- 界面设置 ---
 X(TYPE_BOOL, ui_keep_center, "UI", "KeepCenter", 1, "保持界面居中 (防晃动)")
 X(TYPE_BOOL, disable_screen_shake, "UI", "disable_screen_shake", 1, "禁用屏幕震动")
 X(TYPE_BOOL, enable_fix_inheritance, "UI", "enable_fix_inheritance", 1, "通关后存档继承优化")
@@ -18,13 +18,13 @@ X(TYPE_BOOL, enable_autofill_ext, "Inventory", "AutoFillExt", 1, "扩展背包�
 
 // 物品属性与商店
 X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")
-X(TYPE_BOOL, shop_inf_stock, "Item&Shop", "InfStock", 0, "无限库存 (购买不消失)")
+X(TYPE_BOOL, shop_inf_stock, "Item&Shop", "InfStock", 0, "商店无限库存 (购买不消失)")
 X(TYPE_BOOL, shop_item_count, "Item&Shop", "OptimizeItem", 1, "商店物品堆叠/随机数量")
 X(TYPE_BOOL, shop_sort, "Item&Shop", "EnableSort", 1, "商店物品自动排序")
 X(TYPE_BOOL, show_item_name, "Item&Shop", "EnableShowItemName", 1, "显示地面上物品的名称")
 
 // --- 合成与装备 ---
-X(TYPE_BOOL, enable_insert_gem, "Equipment", "EnableGemInsert", 1, "修改宝石镶嵌条件")
+X(TYPE_BOOL, enable_insert_gem, "Equipment", "EnableGemInsert", 1, "自己镶嵌宝石")
 X(TYPE_BOOL, enable_fuse_opt, "Equipment", "EnableFuseOpt", 1, "优化叠加物品合成")
 
 // --- 快捷键配置 (注意：默认值使用 Windows VK 宏) ---

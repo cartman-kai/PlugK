@@ -403,7 +403,7 @@ namespace UIManager
         ImGui::BeginGroup();
         static std::string activeSubTab = "UI";
         const char *subTabs[] = {"UI", "Inventory", "Item&Shop", "Equipment", "Hotkeys"};
-        const char *subTabsCN[] = {"界面显示", "背包仓库", "物品商店", "装备合成", "快捷按键"};
+        const char *subTabsCN[] = {"界面显示", "背包与仓库", "物品与商店", "装备合成", "快捷按键"};
 
         float tabW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 4) / 5.0f;
 

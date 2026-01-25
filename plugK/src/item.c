@@ -55,11 +55,11 @@ void ToggleShowItemNameSwitch()
     if (g_pk_config.show_item_name)
     {
         g_pk_config.show_item_name = 0;
-        ShowGameLog("[提示]关闭地面物品名称显示");
+        SendGameTips("[提示]关闭地面物品名称显示");
         return;
     }
     g_pk_config.show_item_name = 1;
-    ShowGameLog("[提示]开启地面物品名称显示");
+    SendGameTips("[提示]开启地面物品名称显示");
     return;
 }
 

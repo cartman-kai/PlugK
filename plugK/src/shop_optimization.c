@@ -237,19 +237,19 @@ void ToggleChangeGemStackProp()
 {
     if (!g_pk_config.enable_gem_stack)
     {
-        ShowGameLog("功能未开启");
+        SendGameTips("功能未开启");
         return;
     }
 
     if (g_Flag_GemStackStatus)
     {
         SetGemStackProp(0);
-        ShowGameLog("关闭宝石叠加");
+        SendGameTips("关闭宝石叠加");
         return;
     }
 
     SetGemStackProp(1);
-    ShowGameLog("开启宝石叠加");
+    SendGameTips("开启宝石叠加");
 }
 
 // ---------------------------------------------------------

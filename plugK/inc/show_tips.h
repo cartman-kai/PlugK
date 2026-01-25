@@ -3,6 +3,6 @@
 
 void Mod_show_tips_init(int ver);
 
-void ShowGameLog(const char *text);
+void SendGameTips(const char *text);
 
 #endif

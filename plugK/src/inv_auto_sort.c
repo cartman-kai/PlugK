@@ -512,7 +512,7 @@ void ExecuteInventorySortFlow()
     // MessageBeep(MB_OK);
 
     // [新增文字提示] GB2312 编码的文字
-    ShowGameLog("[背包] 整理完成");
+    SendGameTips("[背包] 整理完成");
 }
 
 // 储物箱整理流程
@@ -523,7 +523,7 @@ void ExecuteStashSortFlow()
 
     // MessageBeep(MB_OK);
     // [新增文字提示] GB2312 编码的文字
-    ShowGameLog("[储物箱] 整理完成");
+    SendGameTips("[储物箱] 整理完成");
 }
 
 void ExecuteCurrentInventorySortFlow()
@@ -538,7 +538,7 @@ void ExecuteCurrentInventorySortFlow()
         PerformOrganize(g_Offset_InventoryArr);
     }
 
-    ShowGameLog("[背包] 当前页-整理完成");
+    SendGameTips("[背包] 当前页-整理完成");
 }
 
 void Mod_inv_auto_sort_init(int game_version)
