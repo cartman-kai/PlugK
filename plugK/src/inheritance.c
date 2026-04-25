@@ -14,6 +14,7 @@ static void PatchByte(DWORD address, BYTE value)
     }
 }
 
+// 继承优化功能
 void Mod_SaveInheritance_Init(int game_version)
 {
     // 1. 检查配置项（假设你在 config 中定义了 enable_save_inheritance）

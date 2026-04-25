@@ -325,6 +325,11 @@ __declspec(naked) void ShopQtyHook2_Trampoline()
 // ---------------------------------------------------------
 // [新增] Shop Sort Hook Trampoline
 // ---------------------------------------------------------
+// This trampoline restores the original SEH-linked epilogue instruction.
+// MSVC warns on direct FS writes, but this hook must replay the overwritten
+// instruction sequence before returning to the game.
+#pragma warning(push)
+#pragma warning(disable : 4733)
 __declspec(naked) void ShopSortHook_Trampoline()
 {
     __asm {
@@ -362,6 +367,7 @@ __declspec(naked) void ShopSortHook_Trampoline()
         ret 4
     }
 }
+#pragma warning(pop)
 
 // ---------------------------------------------------------
 // 工具: 安装 JMP Hook

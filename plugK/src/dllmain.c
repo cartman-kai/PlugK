@@ -10,6 +10,7 @@
 #include "input_mgr.h"
 #include "auto_fill_ext.h"
 #include "show_tips.h"
+#include "ui_offset_fix.h"
 #include "gem_insert.h"
 #include "fuse_opt.h"
 #include "item.h"
@@ -81,7 +82,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         if (ver != VER_UNKNOWN)
         {
             if (MH_Initialize() != MH_OK)
-                return;
+                return FALSE;
 
             // 左侧文字提醒
             Mod_show_tips_init(ver);

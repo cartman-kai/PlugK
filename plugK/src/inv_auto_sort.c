@@ -3,6 +3,7 @@
 #include "config.h"
 #include "show_tips.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 // ---------------------------------------------------------
 // 外部变量引用 (来自 stash_ext.c)
@@ -95,21 +96,7 @@ BOOL IsStackable(ItemObject *pItem)
     if (pItem == NULL)
         return FALSE;
 
-    DWORD id = pItem->ItemID;
-    // BOOL isIdInScope = FALSE;
-
-    // 1. 初步检查：ID 是否在允许堆叠的逻辑范围内
-    // if (id >= 4 && id <= 15)
-    //     isIdInScope = TRUE;
-    // else if (id >= 22 && id <= 23)
-    //     isIdInScope = TRUE;
-    // else if (id >= 60 && id <= 77)
-    //     isIdInScope = TRUE;
-
-    // if (!isIdInScope)
-    //     return FALSE;
-
-    // 2. 深度检查：读取内存模板数据
+    // 读取内存模板数据
     __try
     {
         DWORD ptrTemplateRef = *(DWORD *)((DWORD)pItem + 0x14);

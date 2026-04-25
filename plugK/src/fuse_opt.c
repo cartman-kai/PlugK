@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <stdio.h>
 
+// 合成时，仅消耗1个
 void Mod_Fuse_Count_Opt_init(int game_version)
 {
     // 1. 检查配置

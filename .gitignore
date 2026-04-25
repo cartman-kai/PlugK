@@ -439,3 +439,5 @@ RCa*
 # agent 
 
 .agent/
+AGENTS.md
+.vscode/

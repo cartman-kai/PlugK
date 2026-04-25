@@ -4,6 +4,7 @@
 #include "stash_ext.h"
 #include "inv_auto_sort.h"
 #include "item_stack.h"
+#include "item.h"
 #include "shop_optimization.h"
 
 static WNDPROC g_OriginalWndProc = NULL;
