@@ -91,33 +91,6 @@ InvSort=220              ; 全背包整理 - [ \ ]
 InvSortCurrent=191       ; 当前页整理 - [ / ]
 ```
 
-## 从源码构建
-
-请使用 Visual Studio 2022 和 `v143` 工具集，或在 Developer PowerShell 中执行：
-
-```powershell
-msbuild plugK.sln /p:Configuration=Release /p:Platform=x86
-msbuild plugK.sln /p:Configuration=Debug /p:Platform=x86
-```
-
-默认输出位置：
-
-- `bin/Win32/Release/plugK.dll`
-- `bin/Win32/Release/plugKLauncher.exe`
-
-## 发布与手工验证
-
-开源发布前，至少应验证以下内容：
-
-1. `Release|x86` 能成功构建。
-2. `plugKLauncher.exe` 能在游戏根目录生成 `PlugK.ini`。
-3. 原版启动和 MOD 启动都可用。
-4. 至少手工验证一次受影响功能，例如：
-   - 背包整理
-   - 储物箱扩展/切页
-   - 分辨率修改
-   - 存档继承优化
-
 ## 第三方组件
 
 - Dear ImGui: `launcher/deps/imgui/`, MIT，许可证见 `launcher/deps/imgui/LICENSE.txt`
