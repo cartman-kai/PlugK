@@ -1,0 +1,103 @@
+# plugK
+
+《刀剑封魔录》系列游戏增强补丁。
+
+`plugK` 由一个注入式补丁 DLL 和一个可视化启动器组成，目标是修复原版中的体验问题，并提供可按需启用的增强功能。
+
+## 兼容性
+
+- 支持《刀剑封魔录》`v1.05`
+- 支持《上古传说》`v2.01`
+- 不支持 Steam 版本的 `ComeOn.exe`
+- 当前发布与 CI 构建基线为 `Release|x86`
+
+## 主要功能
+
+补丁通过 `PlugK.ini` 配置文件控制，功能大致分为以下几类：
+
+- 界面与显示
+  - 自定义分辨率
+  - UI 居中修正
+  - 禁用部分屏幕震动
+  - 存档继承优化
+- 背包与储物箱
+  - 一键整理
+  - 扩展存储
+  - 自动填充扩展区域
+- 物品与商店
+  - 宝石堆叠
+  - 商店无限库存
+  - 商店物品堆叠/随机数量
+  - 商店内排序
+  - 地面物品显名
+- 装备与合成
+  - 自主镶嵌
+  - 合成逻辑优化
+- 快捷键
+  - 支持通过 `Ctrl + 自定义按键` 触发常用功能
+
+## 安装与使用
+
+1. 从 [Releases](https://github.com/cartman-kai/plugK/releases) 下载压缩包。
+2. 将以下文件解压到游戏根目录，也就是 `ComeOn.exe` 所在目录：
+   - `plugK.dll`
+   - `plugKLauncher.exe`
+3. 运行 `plugKLauncher.exe`。
+
+首次启动时，启动器会在游戏根目录自动生成默认配置文件 `PlugK.ini`。发布包不依赖预置 INI 文件。
+
+启动器提供：
+
+- 自动检测游戏文件、补丁 DLL、配置文件是否齐全
+- 一键启动原版游戏或 MOD 模式
+- 图形化修改补丁配置
+- 创建原版和 MOD 模式桌面快捷方式
+
+## 配置文件
+
+虽然推荐使用启动器，但也可以手动修改 `PlugK.ini`。
+
+```ini
+[UI]
+KeepCenter=1             ; 1=画面居中(防晃动) 0=关
+disable_screen_shake=1   ; 1=禁用震动 0=开
+enable_fix_inheritance=1 ; 1=存档继承优化 0=关
+Enabled=1                ; 1=启用自定义分辨率
+Width=1280               ; 宽度
+Height=720               ; 高度
+
+[Inventory]
+EnableSort=1             ; 1=启用一键整理
+EnableExt=1              ; 1=启用大箱子
+AutoFillExt=1            ; 1=扩展箱子自动填充
+
+[Item&Shop]
+EnableGemStack=1         ; 1=宝石堆叠
+InfStock=0               ; 1=商店无限库存
+OptimizeItem=1           ; 1=商店堆叠/随机数量
+EnableSort=1             ; 1=商店内排序
+EnableShowItemName=1     ; 1=地面显示物品名
+
+[Equipment]
+EnableGemInsert=1        ; 1=自己镶嵌宝石
+EnableFuseOpt=1          ; 1=优化合成逻辑
+
+[Hotkeys]
+; 使用 Windows VK 键值，默认搭配 Ctrl 组合键
+StashSwap=188            ; 储物箱切换 (A/B) - [ , ]
+StashSort=219            ; 储物箱整理 - [ [ ]
+InvPrev=190              ; 背包切换 (A/B) - [ . ]
+InvSort=220              ; 全背包整理 - [ \ ]
+InvSortCurrent=191       ; 当前页整理 - [ / ]
+```
+
+## 第三方组件
+
+- Dear ImGui: `launcher/deps/imgui/`, MIT，许可证见 `launcher/deps/imgui/LICENSE.txt`
+- MinHook: `plugK/deps/minhook/`, BSD-2-Clause，许可证见 `plugK/deps/minhook/LICENSE.txt`
+
+更完整的归属说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+## 说明
+
+本项目主要使用 C 实现补丁逻辑，启动器使用 C++ 和 ImGui 实现。项目仅用于技术学习与单机游戏体验增强交流。

@@ -1,0 +1,47 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*" # 当你推送以 v 开头的标签（如 v0.0.0.1）时触发
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Solution
+        run: msbuild plugK.sln /p:Configuration=Release /p:Platform=x86 # 根据你的实际平台修改 x64 或 x86
+
+      - name: Prepare Package Folders
+        shell: pwsh
+        run: |
+          # 创建临时打包目录
+          New-Item -ItemType Directory -Force -Path "release_zip"
+
+          # 拷贝发布产物
+          Copy-Item "bin/Win32/Release/plugK.dll" -Destination "release_zip/"
+          Copy-Item "bin/Win32/Release/plugKLauncher.exe" -Destination "release_zip/"
+          Copy-Item "README.md" -Destination "release_zip/"
+          Copy-Item "LICENSE" -Destination "release_zip/"
+          Copy-Item "THIRD_PARTY_NOTICES.md" -Destination "release_zip/"
+
+      - name: Create Zip Archive
+        shell: pwsh
+        run: |
+          # 使用 PowerShell 原生指令打包，避免使用不可靠的第三方 Action
+          Compress-Archive -Path "release_zip/*" -DestinationPath "plugK_v${{ github.ref_name }}_build.zip"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # 这里的名字是你在 Actions 页面看到的下载项名称
+          name: plugK-Binary-Package
+          path: "*.zip"
+          retention-days: 5 # 产物保留 5 天，节省你的 GitHub 存储空间

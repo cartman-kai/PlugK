@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="minhook">
+      <UniqueIdentifier>{620da70a-f440-419b-a267-a8b425741689}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\framework.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\inv_auto_sort.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\resolution.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\shop_inf_stock.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ui_offset_fix.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\shop_optimization.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\stash_ext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\input_mgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\show_tips.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\gem_insert.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\fuse_opt.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\config_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\version_info.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\minhook\include\MinHook.h">
+      <Filter>minhook</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\auto_fill_ext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\item.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\item_stack.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\inheritance.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\config.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dllmain.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\inv_auto_sort.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pch.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\resolution.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shop_inf_stock.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui_offset_fix.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shop_optimization.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stash_ext.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\input_mgr.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\show_tips.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gem_insert.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\fuse_opt.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\auto_fill_ext.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\item.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\item_stack.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\inheritance.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="plugK.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="deps\minhook\lib\libMinHook.x86.lib">
+      <Filter>minhook</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
