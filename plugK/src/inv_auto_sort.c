@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "inv_auto_sort.h"
 #include "config.h"
+#include "item_stack.h"
 #include "show_tips.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +197,8 @@ void PerformOrganize(DWORD targetArrayOffset)
             if (!IsStackable(items[j].Ptr))
                 continue;
 
-            int space = 9 - (int)items[i].Count;
+            int stackLimit = GetItemStackLimit();
+            int space = stackLimit - (int)items[i].Count;
             if (space > 0)
             {
                 int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
@@ -204,7 +206,7 @@ void PerformOrganize(DWORD targetArrayOffset)
                 items[j].Count -= take;
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
-                if (items[i].Count == 9)
+                if ((int)items[i].Count >= stackLimit)
                     break;
             }
         }
@@ -317,8 +319,8 @@ void PerformUnifiedOrganize(DWORD targetArrayOffset, int *hiddenPageArray)
             if (!IsStackable(items[j].Ptr))
                 continue;
 
-            // 计算空间：假设最大堆叠数为 9 (根据原代码逻辑)
-            int space = 9 - (int)items[i].Count;
+            int stackLimit = GetItemStackLimit();
+            int space = stackLimit - (int)items[i].Count;
             if (space > 0)
             {
                 int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
@@ -329,7 +331,7 @@ void PerformUnifiedOrganize(DWORD targetArrayOffset, int *hiddenPageArray)
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
 
-                if (items[i].Count == 9)
+                if ((int)items[i].Count >= stackLimit)
                     break; // 当前堆已满
             }
         }
