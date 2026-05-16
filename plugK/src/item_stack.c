@@ -170,22 +170,31 @@ void Mod_item_stack_init(int game_version)
         AddLimitPatch(0x0047F4DC, 2, STACK_LIMIT_NEG_BYTE);
         AddLimitPatch(0x0047F4DF, 3, STACK_LIMIT_DWORD);
 
-        // 背包与道具栏 setItemCount: cmp/mov/add 中的 9
+        // 背包 setItemCount: cmp/mov/add 中的 9
         AddLimitPatch(0x0047CEE5, 2, STACK_LIMIT_BYTE);
         AddLimitPatch(0x0047CEEA, 3, STACK_LIMIT_DWORD);
         AddLimitPatch(0x0047CEF1, 2, STACK_LIMIT_NEG_BYTE);
+
+        // 道具栏 cmp/add
+        AddLimitPatch(0x0047EDD0, 2, STACK_LIMIT_BYTE);
+        AddLimitPatch(0x0047EDD5, 1, STACK_LIMIT_DWORD);
     }
     else if (game_version == 201)
     {
         g_Addr_MinCmp = 0x0048DE26;
         g_Addr_MaxCmp = 0x0048DE2B;
 
-        // 仓库合并: cmp/add/mov 中的 9
+        // 仓库: cmp/add/mov 中的 9
         AddLimitPatch(0x0048E2E7, 2, STACK_LIMIT_BYTE);
         AddLimitPatch(0x0048E2EC, 2, STACK_LIMIT_NEG_BYTE);
         AddLimitPatch(0x0048E2EF, 3, STACK_LIMIT_DWORD);
 
-        // 背包合并判断: cmp/mov 中的 9
+        // 背包: cmp/mov/add 中的 9
+        AddLimitPatch(0x0048BC15, 2, STACK_LIMIT_BYTE);
+        AddLimitPatch(0x0048BC1A, 3, STACK_LIMIT_DWORD);
+        AddLimitPatch(0x0048BC21, 2, STACK_LIMIT_NEG_BYTE);
+
+        // 道具栏: cmp/mov 中的 9
         AddLimitPatch(0x0048DBC0, 2, STACK_LIMIT_BYTE);
         AddLimitPatch(0x0048DBC5, 1, STACK_LIMIT_DWORD);
     }
