@@ -10,7 +10,6 @@
 // 全局状态管理
 // =========================================================
 
-int g_InvPageB[50];
 static int g_TempPageA[50];      // A 面备份 (临时存储)
 static BOOL g_IsSwapped = FALSE; // 全局标记：当前游戏内存是否为 B 面
 
@@ -117,7 +116,7 @@ int __fastcall Detour_FindEmptySlot(void *pCharBase)
     int slot = fpOriginalFindEmptySlot(pCharBase);
 
     // 如果找到了空位，或者功能没开，直接返回
-    if (slot != -1 || !g_pk_config.enable_autofill_ext)
+    if (slot != -1 || !g_pk_config.enable_autofill_ext || !g_pk_config.stash_ext_enabled)
     {
         return slot;
     }
@@ -193,7 +192,7 @@ __declspec(naked) void Detour_ItemIn_Exit()
 // =========================================================
 void Mod_Auto_Fill_Init(int ver)
 {
-    if (!g_pk_config.enable_autofill_ext)
+    if (!g_pk_config.enable_autofill_ext || !g_pk_config.stash_ext_enabled)
         return;
 
     LPVOID targetFindSlot = NULL;

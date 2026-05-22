@@ -441,11 +441,12 @@ static void PatchCallInstruction(DWORD callAddr, void *newTarget)
 
 void Mod_Stash_Ext_Init(int ver)
 {
+    ResetCache();
+
     if (!g_pk_config.stash_ext_enabled)
         return;
 
     g_GameVersion = ver;
-    ResetCache();
 
     if (ver == 105)
     {
