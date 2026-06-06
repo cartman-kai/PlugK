@@ -34,6 +34,8 @@
 - 装备与合成
   - 自主镶嵌
   - 合成逻辑优化
+- 角色
+  - 一键重置技能点，保留角色初始技能，返还普通技能消耗，并回退必杀技怒气上限
 - 快捷键
   - 支持通过 `Ctrl + 自定义按键` 触发常用功能
 
@@ -81,6 +83,9 @@ EnableShowItemName=1     ; 1=地面显示物品名
 ItemStackLimitEnabled=1  ; 启用单格物品数量上限
 ItemStackLimit=99        ; 单格物品数量上限 (1-127)
 
+[Player]
+EnableSkillRespec=1      ; 1=启用一键洗技能
+
 [Equipment]
 EnableGemInsert=1        ; 1=自己镶嵌宝石
 EnableFuseOpt=1          ; 1=优化合成逻辑
@@ -92,6 +97,7 @@ StashSort=219            ; 储物箱整理 - [ [ ]
 InvPrev=190              ; 背包切换 (A/B) - [ . ]
 InvSort=220              ; 全背包整理 - [ \ ]
 InvSortCurrent=191       ; 当前页整理 - [ / ]
+SkillRespec=8            ; 洗技能 - [ Backspace ]
 ```
 
 ## 第三方组件

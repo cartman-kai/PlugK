@@ -441,3 +441,6 @@ RCa*
 .agent/
 AGENTS.md
 .vscode/
+.codex
+
+game_file

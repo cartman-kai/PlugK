@@ -81,6 +81,9 @@
     <ClInclude Include="inc\inheritance.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\skill_respec.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
@@ -132,6 +135,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\inheritance.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\skill_respec.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -12,11 +12,12 @@ X(TYPE_INT, res_width, "UI", "Width", 1280, "宽度 (Width)")
 X(TYPE_INT, res_height, "UI", "Height", 720, "高度 (Height)")
 
 // --- 背包与储物箱 ---
-X(TYPE_BOOL, inventory_sort, "Inventory", "EnableSort", 1, "启用一键整理")
-X(TYPE_BOOL, stash_ext_enabled, "Inventory", "EnableExt", 1, "启用扩展存储 (大箱子)")
-X(TYPE_BOOL, enable_autofill_ext, "Inventory", "AutoFillExt", 1, "扩展背包自动填充")
-X(TYPE_BOOL, item_stack_limit_enabled, "Inventory", "ItemStackLimitEnabled", 1, "启用单格物品数量上限")
-X(TYPE_INT, item_stack_limit, "Inventory", "ItemStackLimit", 99, "单格物品数量上限 (1-127)")
+X(TYPE_BOOL, inventory_sort, "Player", "EnableSort", 1, "启用一键整理")
+X(TYPE_BOOL, stash_ext_enabled, "Player", "EnableExt", 1, "启用扩展存储 (大箱子)")
+X(TYPE_BOOL, enable_autofill_ext, "Player", "AutoFillExt", 1, "扩展背包自动填充")
+X(TYPE_BOOL, item_stack_limit_enabled, "Player", "ItemStackLimitEnabled", 1, "启用单格物品数量上限")
+X(TYPE_INT, item_stack_limit, "Player", "ItemStackLimit", 99, "单格物品数量上限 (1-127)")
+X(TYPE_BOOL, enable_skill_respec, "Player", "EnableSkillRespec", 1, "启用重置技能")
 
 // 物品属性与商店
 X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")
@@ -37,3 +38,4 @@ X(TYPE_KEY, key_inv_sort, "Hotkeys", "InvSort", VK_OEM_5, "背包整理 (全部)
 X(TYPE_KEY, key_inv_sort_current, "Hotkeys", "InvSortCurrent", VK_OEM_2, "背包整理 (当前页)")
 X(TYPE_KEY, key_switch_gem_stack, "Hotkeys", "switch_gem_stack", VK_OEM_7, "切换宝石叠加开关")
 X(TYPE_KEY, key_switch_show_item_name, "Hotkeys", "key_switch_show_item_name", VK_OEM_6, "显示物品名称")
+X(TYPE_KEY, key_skill_respec, "Hotkeys", "SkillRespec", VK_BACK, "重置技能")

@@ -38,6 +38,7 @@
     <ClInclude Include="inc\shop_inf_stock.h" />
     <ClInclude Include="inc\shop_optimization.h" />
     <ClInclude Include="inc\show_tips.h" />
+    <ClInclude Include="inc\skill_respec.h" />
     <ClInclude Include="inc\stash_ext.h" />
     <ClInclude Include="inc\ui_offset_fix.h" />
   </ItemGroup>
@@ -57,6 +58,7 @@
     <ClCompile Include="src\shop_inf_stock.c" />
     <ClCompile Include="src\shop_optimization.c" />
     <ClCompile Include="src\show_tips.c" />
+    <ClCompile Include="src\skill_respec.c" />
     <ClCompile Include="src\stash_ext.c" />
     <ClCompile Include="src\ui_offset_fix.c" />
   </ItemGroup>
