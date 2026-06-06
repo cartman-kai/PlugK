@@ -20,6 +20,7 @@
   - UI 居中修正
   - 禁用部分屏幕震动
   - 存档继承优化
+  - 敌人血量显示
 - 背包与储物箱
   - 一键整理
   - 扩展存储
@@ -65,6 +66,7 @@
 KeepCenter=1             ; 1=画面居中(防晃动) 0=关
 disable_screen_shake=1   ; 1=禁用震动 0=开
 enable_fix_inheritance=1 ; 1=存档继承优化 0=关
+ShowEnemyHp=1            ; 1=显示敌人血量 0=关
 Enabled=1                ; 1=启用自定义分辨率
 Width=1280               ; 宽度
 Height=720               ; 高度

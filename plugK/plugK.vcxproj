@@ -24,6 +24,7 @@
     <ClInclude Include="inc\auto_fill_ext.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\config_def.h" />
+    <ClInclude Include="inc\enemy_name.h" />
     <ClInclude Include="inc\framework.h" />
     <ClInclude Include="inc\fuse_opt.h" />
     <ClInclude Include="inc\gem_insert.h" />
@@ -46,6 +47,7 @@
     <ClCompile Include="src\auto_fill_ext.c" />
     <ClCompile Include="src\config.c" />
     <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\enemy_name.c" />
     <ClCompile Include="src\fuse_opt.c" />
     <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\inheritance.c" />
