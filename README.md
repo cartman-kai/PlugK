@@ -24,6 +24,7 @@
   - 一键整理
   - 扩展存储
   - 自动填充扩展区域
+  - 自定义单格物品数量
 - 物品与商店
   - 宝石堆叠
   - 商店无限库存
@@ -77,6 +78,8 @@ InfStock=0               ; 1=商店无限库存
 OptimizeItem=1           ; 1=商店堆叠/随机数量
 EnableSort=1             ; 1=商店内排序
 EnableShowItemName=1     ; 1=地面显示物品名
+ItemStackLimitEnabled=1  ; 启用单格物品数量上限
+ItemStackLimit=99        ; 单格物品数量上限 (1-127)
 
 [Equipment]
 EnableGemInsert=1        ; 1=自己镶嵌宝石

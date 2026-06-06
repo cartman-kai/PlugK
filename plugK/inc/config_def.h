@@ -15,6 +15,8 @@ X(TYPE_INT, res_height, "UI", "Height", 720, "高度 (Height)")
 X(TYPE_BOOL, inventory_sort, "Inventory", "EnableSort", 1, "启用一键整理")
 X(TYPE_BOOL, stash_ext_enabled, "Inventory", "EnableExt", 1, "启用扩展存储 (大箱子)")
 X(TYPE_BOOL, enable_autofill_ext, "Inventory", "AutoFillExt", 1, "扩展背包自动填充")
+X(TYPE_BOOL, item_stack_limit_enabled, "Inventory", "ItemStackLimitEnabled", 1, "启用单格物品数量上限")
+X(TYPE_INT, item_stack_limit, "Inventory", "ItemStackLimit", 99, "单格物品数量上限 (1-127)")
 
 // 物品属性与商店
 X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")

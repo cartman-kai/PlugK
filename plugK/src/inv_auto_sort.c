@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "inv_auto_sort.h"
 #include "config.h"
+#include "item_stack.h"
 #include "show_tips.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +197,8 @@ void PerformOrganize(DWORD targetArrayOffset)
             if (!IsStackable(items[j].Ptr))
                 continue;
 
-            int space = 9 - (int)items[i].Count;
+            int stackLimit = GetItemStackLimit();
+            int space = stackLimit - (int)items[i].Count;
             if (space > 0)
             {
                 int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
@@ -204,7 +206,7 @@ void PerformOrganize(DWORD targetArrayOffset)
                 items[j].Count -= take;
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
-                if (items[i].Count == 9)
+                if ((int)items[i].Count >= stackLimit)
                     break;
             }
         }
@@ -236,6 +238,12 @@ void PerformOrganize(DWORD targetArrayOffset)
 // hiddenPageArray:   对应的 B 面数组指针 (如 g_InvPageB)
 void PerformUnifiedOrganize(DWORD targetArrayOffset, int *hiddenPageArray)
 {
+    if (!g_pk_config.stash_ext_enabled || hiddenPageArray == NULL)
+    {
+        PerformOrganize(targetArrayOffset);
+        return;
+    }
+
     DWORD charBase = GetCharacterBase();
     if (charBase == 0)
         return;
@@ -317,8 +325,8 @@ void PerformUnifiedOrganize(DWORD targetArrayOffset, int *hiddenPageArray)
             if (!IsStackable(items[j].Ptr))
                 continue;
 
-            // 计算空间：假设最大堆叠数为 9 (根据原代码逻辑)
-            int space = 9 - (int)items[i].Count;
+            int stackLimit = GetItemStackLimit();
+            int space = stackLimit - (int)items[i].Count;
             if (space > 0)
             {
                 int take = (items[j].Count >= (DWORD)space) ? space : items[j].Count;
@@ -329,7 +337,7 @@ void PerformUnifiedOrganize(DWORD targetArrayOffset, int *hiddenPageArray)
                 items[i].Ptr->Count = items[i].Count;
                 items[j].Ptr->Count = items[j].Count;
 
-                if (items[i].Count == 9)
+                if ((int)items[i].Count >= stackLimit)
                     break; // 当前堆已满
             }
         }
@@ -442,8 +450,8 @@ BOOL CleanupQuickSlots()
             }
         }
 
-        // 2. 如果 A 面没空位，找 B 面空位
-        if (freeSlotA == -1)
+        // 2. 如果 A 面没空位且扩展存储已启用，找 B 面空位
+        if (freeSlotA == -1 && g_pk_config.stash_ext_enabled)
         {
             for (int i = 0; i < 50; i++)
             {
@@ -485,6 +493,17 @@ BOOL CleanupQuickSlots()
 // 背包整理流程
 void ExecuteInventorySortFlow()
 {
+    if (!g_pk_config.stash_ext_enabled)
+    {
+        PerformOrganize(g_Offset_InventoryArr);
+        if (CleanupQuickSlots())
+        {
+            PerformOrganize(g_Offset_InventoryArr);
+        }
+        SendGameTips("[背包] 整理完成");
+        return;
+    }
+
     // 1. 先进行一次 A+B 统一整理
     // 这会将所有物品优先压缩到 A 面，溢出的去 B 面
     PerformUnifiedOrganize(g_Offset_InventoryArr, g_InvPageB);
@@ -505,6 +524,13 @@ void ExecuteInventorySortFlow()
 // 储物箱整理流程
 void ExecuteStashSortFlow()
 {
+    if (!g_pk_config.stash_ext_enabled)
+    {
+        PerformOrganize(g_Offset_StashArr);
+        SendGameTips("[储物箱] 整理完成");
+        return;
+    }
+
     // 直接进行 A+B 统一整理
     PerformUnifiedOrganize(g_Offset_StashArr, g_StashPageB);
 

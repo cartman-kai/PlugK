@@ -72,6 +72,11 @@ void pk_config_load(const char *optional_path)
     g_pk_config.name = GetPrivateProfileIntA(sec, key, val, ini_path);
 #include "../inc/config_def.h"
 #undef X
+
+    if (g_pk_config.item_stack_limit < 1)
+        g_pk_config.item_stack_limit = 1;
+    if (g_pk_config.item_stack_limit > 127)
+        g_pk_config.item_stack_limit = 127;
 }
 
 void pk_config_create_default(const char *path)
