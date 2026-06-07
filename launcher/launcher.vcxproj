@@ -118,6 +118,9 @@
     <ResourceCompile Include="launcher.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="ArchiveVersionedBuildOutputs" AfterTargets="Build" Condition="'$(Platform)'=='Win32'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)scripts\archive_build_output.ps1&quot; -SolutionDir &quot;$(SolutionDir).&quot; -OutDir &quot;$(OutDir).&quot;" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
