@@ -63,6 +63,9 @@
     <ClInclude Include="inc\config_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\enemy_name.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="..\version_info.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -81,12 +84,18 @@
     <ClInclude Include="inc\inheritance.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\skill_respec.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\dllmain.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\enemy_name.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\inv_auto_sort.c">
@@ -132,6 +141,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\inheritance.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\skill_respec.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

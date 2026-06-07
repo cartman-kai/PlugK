@@ -15,6 +15,8 @@
 #include "fuse_opt.h"
 #include "item.h"
 #include "inheritance.h"
+#include "skill_respec.h"
+#include "enemy_name.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -120,6 +122,12 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 通关继承优化
             Mod_SaveInheritance_Init(ver);
+
+            // 一键洗技能
+            Mod_Skill_Respec_Init(ver);
+
+            // 敌人名称显示增强
+            Mod_Enemy_Name_Init(ver);
 
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();

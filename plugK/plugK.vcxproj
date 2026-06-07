@@ -24,6 +24,7 @@
     <ClInclude Include="inc\auto_fill_ext.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\config_def.h" />
+    <ClInclude Include="inc\enemy_name.h" />
     <ClInclude Include="inc\framework.h" />
     <ClInclude Include="inc\fuse_opt.h" />
     <ClInclude Include="inc\gem_insert.h" />
@@ -38,6 +39,7 @@
     <ClInclude Include="inc\shop_inf_stock.h" />
     <ClInclude Include="inc\shop_optimization.h" />
     <ClInclude Include="inc\show_tips.h" />
+    <ClInclude Include="inc\skill_respec.h" />
     <ClInclude Include="inc\stash_ext.h" />
     <ClInclude Include="inc\ui_offset_fix.h" />
   </ItemGroup>
@@ -45,6 +47,7 @@
     <ClCompile Include="src\auto_fill_ext.c" />
     <ClCompile Include="src\config.c" />
     <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\enemy_name.c" />
     <ClCompile Include="src\fuse_opt.c" />
     <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\inheritance.c" />
@@ -57,6 +60,7 @@
     <ClCompile Include="src\shop_inf_stock.c" />
     <ClCompile Include="src\shop_optimization.c" />
     <ClCompile Include="src\show_tips.c" />
+    <ClCompile Include="src\skill_respec.c" />
     <ClCompile Include="src\stash_ext.c" />
     <ClCompile Include="src\ui_offset_fix.c" />
   </ItemGroup>
