@@ -12,6 +12,7 @@ extern int g_StashPageB[50];
 extern int g_InvPageB[50];
 
 #define VER_105 105
+#define VER_201 201
 
 #define ADDR_105_SELECT_DROP_ITEM 0x00452200
 #define ADDR_105_CHAR_PTR 0x00558AC4
@@ -21,6 +22,15 @@ extern int g_InvPageB[50];
 #define RET_105_DROP_SELECT_2 0x00452641
 #define RET_105_DROP_SELECT_3 0x00452652
 #define RET_105_DROP_SELECT_4 0x00452663
+
+#define ADDR_201_SELECT_DROP_ITEM 0x0045E390
+#define ADDR_201_CHAR_PTR 0x00589A44
+#define ADDR_201_PROPMDL_TABLE 0x005788D0
+
+#define RET_201_DROP_SELECT_1 0x0045E7B0
+#define RET_201_DROP_SELECT_2 0x0045E7C1
+#define RET_201_DROP_SELECT_3 0x0045E7D2
+#define RET_201_DROP_SELECT_4 0x0045E7E3
 
 #define OFFSET_ITEM_POOL 0xA0
 #define OFFSET_INV 0xA4
@@ -39,7 +49,16 @@ extern int g_InvPageB[50];
 
 typedef int(__cdecl *tSelectDropItem)(int level, int type_hint);
 
+typedef struct DropBiasVersionConfig
+{
+    DWORD select_drop_item;
+    DWORD char_ptr;
+    DWORD propmdl_table;
+    DWORD returns[4];
+} DropBiasVersionConfig;
+
 static tSelectDropItem fpSelectDropItem = NULL;
+static DropBiasVersionConfig g_drop_bias_config;
 static int g_recent_drop_count[MAX_ITEM_ID_TRACK];
 static DWORD g_last_char_base = 0;
 static DWORD g_local_rng_state = 0;
@@ -53,10 +72,15 @@ typedef struct DropCandidate
 static int IsDropSelectReturn(void *return_address)
 {
     DWORD ret = (DWORD)return_address;
-    return ret == RET_105_DROP_SELECT_1 ||
-           ret == RET_105_DROP_SELECT_2 ||
-           ret == RET_105_DROP_SELECT_3 ||
-           ret == RET_105_DROP_SELECT_4;
+    int i;
+
+    for (i = 0; i < 4; ++i)
+    {
+        if (g_drop_bias_config.returns[i] == ret)
+            return 1;
+    }
+
+    return 0;
 }
 
 static int IsSupportedItemType(int item_type)
@@ -111,11 +135,13 @@ static DWORD GetPropMdlBase(int *out_count)
     int count;
     DWORD base;
 
-    if (IsBadReadPtr((void *)ADDR_105_PROPMDL_TABLE, 8))
+    if (g_drop_bias_config.propmdl_table == 0)
+        return 0;
+    if (IsBadReadPtr((void *)g_drop_bias_config.propmdl_table, 8))
         return 0;
 
-    count = *(int *)ADDR_105_PROPMDL_TABLE;
-    base = *(DWORD *)(ADDR_105_PROPMDL_TABLE + 4);
+    count = *(int *)g_drop_bias_config.propmdl_table;
+    base = *(DWORD *)(g_drop_bias_config.propmdl_table + 4);
 
     if (count <= 0 || count > 4096 || base == 0)
         return 0;
@@ -150,10 +176,12 @@ static DWORD GetCharBase(void)
 {
     DWORD char_base;
 
-    if (IsBadReadPtr((void *)ADDR_105_CHAR_PTR, sizeof(DWORD)))
+    if (g_drop_bias_config.char_ptr == 0)
+        return 0;
+    if (IsBadReadPtr((void *)g_drop_bias_config.char_ptr, sizeof(DWORD)))
         return 0;
 
-    char_base = *(DWORD *)ADDR_105_CHAR_PTR;
+    char_base = *(DWORD *)g_drop_bias_config.char_ptr;
     if (char_base == 0 || IsBadReadPtr((void *)char_base, 0x300))
         return 0;
 
@@ -369,15 +397,46 @@ void DropBias_ResetRecent(void)
     memset(g_recent_drop_count, 0, sizeof(g_recent_drop_count));
 }
 
+static int InitVersionConfig(int game_version, DropBiasVersionConfig *config)
+{
+    memset(config, 0, sizeof(*config));
+
+    if (game_version == VER_105)
+    {
+        config->select_drop_item = ADDR_105_SELECT_DROP_ITEM;
+        config->char_ptr = ADDR_105_CHAR_PTR;
+        config->propmdl_table = ADDR_105_PROPMDL_TABLE;
+        config->returns[0] = RET_105_DROP_SELECT_1;
+        config->returns[1] = RET_105_DROP_SELECT_2;
+        config->returns[2] = RET_105_DROP_SELECT_3;
+        config->returns[3] = RET_105_DROP_SELECT_4;
+        return 1;
+    }
+
+    if (game_version == VER_201)
+    {
+        config->select_drop_item = ADDR_201_SELECT_DROP_ITEM;
+        config->char_ptr = ADDR_201_CHAR_PTR;
+        config->propmdl_table = ADDR_201_PROPMDL_TABLE;
+        config->returns[0] = RET_201_DROP_SELECT_1;
+        config->returns[1] = RET_201_DROP_SELECT_2;
+        config->returns[2] = RET_201_DROP_SELECT_3;
+        config->returns[3] = RET_201_DROP_SELECT_4;
+        return 1;
+    }
+
+    return 0;
+}
+
 void Mod_Drop_Bias_Init(int game_version)
 {
-    if (game_version != VER_105)
+    if (!InitVersionConfig(game_version, &g_drop_bias_config))
         return;
     if (!g_pk_config.enable_drop_bias)
         return;
 
-    MH_CreateHook((LPVOID)ADDR_105_SELECT_DROP_ITEM,
+    MH_CreateHook((LPVOID)g_drop_bias_config.select_drop_item,
                   &Detour_SelectDropItem,
                   (LPVOID *)&fpSelectDropItem);
-    MH_EnableHook((LPVOID)ADDR_105_SELECT_DROP_ITEM);
+    MH_EnableHook((LPVOID)g_drop_bias_config.select_drop_item);
 }
