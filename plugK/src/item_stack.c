@@ -3,6 +3,7 @@
 #include "config.h"
 #include "show_tips.h"
 #include <stdio.h>
+#include <string.h>
 
 // --------------------------------------------------------
 // 全局状态管理
@@ -13,6 +14,12 @@ static int g_CurrentVersion = 0;
 // 地址缓存
 static DWORD g_Addr_MinCmp = 0;
 static DWORD g_Addr_MaxCmp = 0;
+static DWORD g_Addr_ItemInNewSlotHook = 0;
+static DWORD g_Addr_ItemInNewSlotRet = 0;
+static DWORD g_Addr_TableGetInt = 0;
+static DWORD g_Addr_FindConsumableSlot = 0;
+static DWORD g_Addr_FindThrowSlot = 0;
+static DWORD g_Addr_FindInventorySlot = 0;
 
 typedef enum StackLimitPatchType
 {
@@ -39,6 +46,20 @@ const BYTE PATCH_MAX = 0x24;
 // 原始值 (Original Values) - 根据你的文件注释得知
 const BYTE ORIG_MIN = 0x14; // 20
 const BYTE ORIG_MAX = 0x1D; // 29
+
+static const BYTE ORIG_ITEM_IN_NEW_SLOT_105[] = {
+    0x8B, 0xCB,                         // mov ecx, ebx
+    0xE8, 0xF2, 0x01, 0x00, 0x00,       // call sub_47F270
+    0x89, 0x44, 0x24, 0x30,             // mov [esp+30h], eax
+    0xEB, 0x3B                          // jmp loc_47F0BF
+};
+
+static const BYTE ORIG_ITEM_IN_NEW_SLOT_201[] = {
+    0x8B, 0xCB,                         // mov ecx, ebx
+    0xE8, 0xEF, 0x01, 0x00, 0x00,       // call sub_48E080
+    0x89, 0x44, 0x24, 0x30,             // mov [esp+30h], eax
+    0xEB, 0x3B                          // jmp loc_48DED2
+};
 
 // --------------------------------------------------------
 // 内存 Patch 工具函数 (保持不变)
@@ -70,6 +91,111 @@ void MemoryPatchDword(DWORD targetAddr, int offset, DWORD newValue)
     {
         *(DWORD *)address = newValue;
         VirtualProtect((LPVOID)address, sizeof(DWORD), oldProtect, &oldProtect);
+    }
+}
+
+static void MemoryPatchBytes(DWORD targetAddr, const BYTE *data, SIZE_T size)
+{
+    if (targetAddr == 0 || data == NULL || size == 0)
+        return;
+
+    DWORD oldProtect;
+    if (VirtualProtect((LPVOID)targetAddr, size, PAGE_EXECUTE_READWRITE, &oldProtect))
+    {
+        memcpy((void *)targetAddr, data, size);
+        VirtualProtect((LPVOID)targetAddr, size, oldProtect, &oldProtect);
+        FlushInstructionCache(GetCurrentProcess(), (LPCVOID)targetAddr, size);
+    }
+}
+
+static void MemoryPatchJump(DWORD source, DWORD target, SIZE_T length)
+{
+    if (source == 0 || target == 0 || length < 5)
+        return;
+
+    BYTE patch[16];
+    if (length > sizeof(patch))
+        return;
+
+    memset(patch, 0x90, length);
+    patch[0] = 0xE9;
+    *(DWORD *)(patch + 1) = target - source - 5;
+    MemoryPatchBytes(source, patch, length);
+}
+
+// ItemIn 在“找不到可合并堆叠，需要新建物品对象”时会先选择一个槽位。
+// 原版只有 Type 20-29 会走这里；物品叠加补丁把范围扩展到 9-36 后，
+// Type 10-19 和 Type 30-35 也会误用 Type 20-29 的投掷栏槽位。
+// 这里按原游戏槽位规则重新分派：
+//   Type 10-19 -> 50-55 快捷道具槽
+//   Type 20-29 -> 56-61 投掷物品快捷槽
+//   其它类型   -> 0-49  普通背包
+__declspec(naked) void ItemInNewSlotDispatch()
+{
+    __asm {
+        mov eax, [esp+14h]
+        test eax, eax
+        jz use_inventory_slot
+
+        push 2
+        mov ecx, eax
+        call dword ptr [g_Addr_TableGetInt]
+
+        cmp eax, 10
+        jl use_inventory_slot
+        cmp eax, 19
+        jle use_consumable_slot
+        cmp eax, 20
+        jl use_inventory_slot
+        cmp eax, 29
+        jle use_throw_slot
+        jmp use_inventory_slot
+
+    use_consumable_slot:
+        mov ecx, ebx
+        call dword ptr [g_Addr_FindConsumableSlot]
+        jmp store_slot
+
+    use_throw_slot:
+        mov ecx, ebx
+        call dword ptr [g_Addr_FindThrowSlot]
+        jmp store_slot
+
+    use_inventory_slot:
+        mov ecx, ebx
+        call dword ptr [g_Addr_FindInventorySlot]
+
+    store_slot:
+        mov [esp+30h], eax
+        jmp dword ptr [g_Addr_ItemInNewSlotRet]
+    }
+}
+
+static void ApplyItemInNewSlotPatch(BOOL enable)
+{
+    if (g_Addr_ItemInNewSlotHook == 0)
+        return;
+
+    if (enable)
+    {
+        MemoryPatchJump(g_Addr_ItemInNewSlotHook,
+                        (DWORD)ItemInNewSlotDispatch,
+                        sizeof(ORIG_ITEM_IN_NEW_SLOT_105));
+    }
+    else
+    {
+        if (g_CurrentVersion == 201)
+        {
+            MemoryPatchBytes(g_Addr_ItemInNewSlotHook,
+                             ORIG_ITEM_IN_NEW_SLOT_201,
+                             sizeof(ORIG_ITEM_IN_NEW_SLOT_201));
+        }
+        else
+        {
+            MemoryPatchBytes(g_Addr_ItemInNewSlotHook,
+                             ORIG_ITEM_IN_NEW_SLOT_105,
+                             sizeof(ORIG_ITEM_IN_NEW_SLOT_105));
+        }
     }
 }
 
@@ -131,12 +257,14 @@ void ApplyItemStackPatch(BOOL enable)
         // 开启：写入更宽的范围
         MemoryPatchByte(g_Addr_MinCmp, CMP_OFFSET, PATCH_MIN);
         MemoryPatchByte(g_Addr_MaxCmp, CMP_OFFSET, PATCH_MAX);
+        ApplyItemInNewSlotPatch(TRUE);
     }
     else
     {
         // 关闭：还原为原始游戏数值
         MemoryPatchByte(g_Addr_MinCmp, CMP_OFFSET, ORIG_MIN);
         MemoryPatchByte(g_Addr_MaxCmp, CMP_OFFSET, ORIG_MAX);
+        ApplyItemInNewSlotPatch(FALSE);
     }
 }
 
@@ -162,8 +290,15 @@ void Mod_item_stack_init(int game_version)
 
     if (game_version == 105)
     {
+        // 1.05: sub_47EF40
         g_Addr_MinCmp = 0x0047F013;
         g_Addr_MaxCmp = 0x0047F018;
+        g_Addr_ItemInNewSlotHook = 0x0047F077;
+        g_Addr_ItemInNewSlotRet = 0x0047F0BF;
+        g_Addr_TableGetInt = 0x004D0210;
+        g_Addr_FindConsumableSlot = 0x0047F250;
+        g_Addr_FindThrowSlot = 0x0047F270;
+        g_Addr_FindInventorySlot = 0x0047F290;
 
         // 仓库合并: cmp/add/mov 中的 9
         AddLimitPatch(0x0047F4D7, 2, STACK_LIMIT_BYTE);
@@ -181,8 +316,15 @@ void Mod_item_stack_init(int game_version)
     }
     else if (game_version == 201)
     {
+        // 2.01: sub_48DD30
         g_Addr_MinCmp = 0x0048DE26;
         g_Addr_MaxCmp = 0x0048DE2B;
+        g_Addr_ItemInNewSlotHook = 0x0048DE8A;
+        g_Addr_ItemInNewSlotRet = 0x0048DED2;
+        g_Addr_TableGetInt = 0x004E4EF0;
+        g_Addr_FindConsumableSlot = 0x0048E060;
+        g_Addr_FindThrowSlot = 0x0048E080;
+        g_Addr_FindInventorySlot = 0x0048E0A0;
 
         // 仓库: cmp/add/mov 中的 9
         AddLimitPatch(0x0048E2E7, 2, STACK_LIMIT_BYTE);
@@ -202,6 +344,12 @@ void Mod_item_stack_init(int game_version)
     {
         g_Addr_MinCmp = 0;
         g_Addr_MaxCmp = 0;
+        g_Addr_ItemInNewSlotHook = 0;
+        g_Addr_ItemInNewSlotRet = 0;
+        g_Addr_TableGetInt = 0;
+        g_Addr_FindConsumableSlot = 0;
+        g_Addr_FindThrowSlot = 0;
+        g_Addr_FindInventorySlot = 0;
     }
 
     ApplyItemStackPatch(g_bIsItemStackActive);
