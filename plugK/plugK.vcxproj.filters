@@ -87,6 +87,9 @@
     <ClInclude Include="inc\skill_respec.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\drop_bias.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\config.c">
@@ -144,6 +147,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\skill_respec.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\drop_bias.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

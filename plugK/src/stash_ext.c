@@ -2,6 +2,7 @@
 #include "stash_ext.h"
 #include "config.h"
 #include "inv_auto_sort.h" // 复用 GetCharacterBase
+#include "drop_bias.h"
 #include "show_tips.h"
 #include <stdio.h>
 
@@ -89,6 +90,7 @@ void ResetCache()
     g_CurrentStashPage = 0;
     g_CurrentInvPage = 0;
     g_IsStashExtReady = FALSE;
+    DropBias_ResetRecent();
 }
 
 // ---------------------------------------------------------

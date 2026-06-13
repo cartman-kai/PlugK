@@ -17,6 +17,7 @@
 #include "inheritance.h"
 #include "skill_respec.h"
 #include "enemy_name.h"
+#include "drop_bias.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -129,6 +130,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 敌人名称显示增强
             Mod_Enemy_Name_Init(ver);
 
+            // 敌人随机掉落倾向优化
+            Mod_Drop_Bias_Init(ver);
+
             // 2. 启动统一的按键监听线程
             Mod_Input_Mgr_Init();
         }
@@ -141,7 +145,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
+        break;
     case DLL_PROCESS_DETACH:
+        DropBias_ResetRecent();
         break;
     }
     return TRUE;
