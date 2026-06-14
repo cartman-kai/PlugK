@@ -7,13 +7,53 @@
 #include "item.h"
 #include "shop_optimization.h"
 #include "skill_respec.h"
+#include "ultimate_hotkey.h"
 
 static WNDPROC g_OriginalWndProc = NULL;
 static HWND g_hGameWindow = NULL;
+static BOOL g_swallow_ultimate_keyup[4] = {FALSE, FALSE, FALSE, FALSE};
+
+static int GetUltimateHotkeySlot(WPARAM wParam)
+{
+    int key = (int)wParam;
+
+    if (key >= '1' && key <= '4')
+        return key - '1';
+    if (key >= VK_NUMPAD1 && key <= VK_NUMPAD4)
+        return key - VK_NUMPAD1;
+
+    return -1;
+}
 
 // 自定义消息处理函数
 LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    // Alt+1..4 与游戏原有数字键吃药冲突，按下消息始终吞掉；重复消息只拦截不再次释放。
+    if (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN)
+    {
+        if (GetKeyState(VK_MENU) & 0x8000)
+        {
+            int slot = GetUltimateHotkeySlot(wParam);
+            if (slot >= 0)
+            {
+                g_swallow_ultimate_keyup[slot] = TRUE;
+                if (!(lParam & 0x40000000))
+                    ExecuteUltimateHotkeySlot(slot);
+                return 0;
+            }
+        }
+    }
+    // 对应的释放和系统字符消息也吞掉，避免游戏继续收到数字键并触发回复药快捷键。
+    else if (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP || uMsg == WM_SYSCHAR)
+    {
+        int slot = GetUltimateHotkeySlot(wParam);
+        if (slot >= 0 && (g_swallow_ultimate_keyup[slot] || (GetKeyState(VK_MENU) & 0x8000)))
+        {
+            if (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP)
+                g_swallow_ultimate_keyup[slot] = FALSE;
+            return 0;
+        }
+    }
 
     // 监听按键按下消息
     if (uMsg == WM_KEYDOWN)
