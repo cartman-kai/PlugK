@@ -431,6 +431,12 @@ FodyWeavers.xsd
 tmp/
 temp/
 
+# Local notes and reverse-engineering knowledge base
+docs/reverse_kb/
+docs/game_common.md
+docs/release_process.md
+docs/release_note/
+
 # Build residuals
 RCa*
 *.aps
