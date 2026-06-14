@@ -20,13 +20,15 @@ X(TYPE_BOOL, enable_drop_bias, "Player", "EnableDropBias", 1, "启用掉落倾�
 X(TYPE_BOOL, item_stack_limit_enabled, "Player", "ItemStackLimitEnabled", 1, "启用单格物品数量上限")
 X(TYPE_INT, item_stack_limit, "Player", "ItemStackLimit", 99, "单格物品数量上限 (1-127)")
 X(TYPE_BOOL, enable_skill_respec, "Player", "EnableSkillRespec", 1, "启用重置技能")
+X(TYPE_BOOL, enable_ultimate_hotkey, "Player", "EnableUltimateHotkey", 1, "启用 Alt+1-4 快捷释放必杀技")
 
 // 物品属性与商店
 X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")
 X(TYPE_BOOL, shop_inf_stock, "Item&Shop", "InfStock", 0, "商店无限库存 (购买不消失)")
 X(TYPE_BOOL, shop_item_count, "Item&Shop", "OptimizeItem", 1, "商店物品堆叠/随机数量")
 X(TYPE_BOOL, shop_sort, "Item&Shop", "EnableSort", 1, "商店物品自动排序")
-X(TYPE_BOOL, show_item_name, "Item&Shop", "EnableShowItemName", 1, "显示地面上物品的名称")
+X(TYPE_BOOL, show_item_name, "Item&Shop", "EnableShowItemName", 0, "长期显示地面上物品的名称")
+X(TYPE_BOOL, hold_show_item_name, "Item&Shop", "EnableHoldShowItemName", 1, "启用长按快捷键显示地面物品名称")
 
 // --- 合成与装备 ---
 X(TYPE_BOOL, enable_insert_gem, "Equipment", "EnableGemInsert", 1, "自己镶嵌宝石")
@@ -40,4 +42,5 @@ X(TYPE_KEY, key_inv_sort, "Hotkeys", "InvSort", VK_OEM_5, "背包整理 (全部)
 X(TYPE_KEY, key_inv_sort_current, "Hotkeys", "InvSortCurrent", VK_OEM_2, "背包整理 (当前页)")
 X(TYPE_KEY, key_switch_gem_stack, "Hotkeys", "switch_gem_stack", VK_OEM_7, "切换宝石叠加开关")
 X(TYPE_KEY, key_switch_show_item_name, "Hotkeys", "key_switch_show_item_name", VK_OEM_6, "显示物品名称")
+X(TYPE_KEY, key_hold_show_item_name, "Hotkeys", "HoldShowItemName", VK_OEM_3, "长按显示物品名称")
 X(TYPE_KEY, key_skill_respec, "Hotkeys", "SkillRespec", VK_BACK, "重置技能")

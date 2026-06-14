@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ultimate_hotkey.h"
+#include "config.h"
 #include "show_tips.h"
 #include <windows.h>
 #include <string.h>
@@ -200,7 +201,7 @@ void ExecuteUltimateHotkeySlot(int slot_index)
     int skill_id = 0;
     int method_id = 0;
 
-    if (!g_enabled)
+    if (!g_enabled || !g_pk_config.enable_ultimate_hotkey)
         return;
 
     if (slot_index < 0 || slot_index >= ULTIMATE_SLOT_COUNT)
@@ -235,6 +236,9 @@ void ExecuteUltimateHotkeySlot(int slot_index)
 void Mod_Ultimate_Hotkey_Init(int game_version)
 {
     UltimateHotkeyAddressConfig config;
+
+    if (!g_pk_config.enable_ultimate_hotkey)
+        return;
 
     if (!LoadAddressConfig(game_version, &config))
         return;

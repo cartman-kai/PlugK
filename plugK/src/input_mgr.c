@@ -28,8 +28,8 @@ static int GetUltimateHotkeySlot(WPARAM wParam)
 // 自定义消息处理函数
 LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    // Alt+1..4 与游戏原有数字键吃药冲突，按下消息始终吞掉；重复消息只拦截不再次释放。
-    if (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN)
+    // Alt+1..4 与游戏原有数字键吃药冲突，启用时按下消息始终吞掉；重复消息只拦截不再次释放。
+    if (g_pk_config.enable_ultimate_hotkey && (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN))
     {
         if (GetKeyState(VK_MENU) & 0x8000)
         {
@@ -44,7 +44,7 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
         }
     }
     // 对应的释放和系统字符消息也吞掉，避免游戏继续收到数字键并触发回复药快捷键。
-    else if (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP || uMsg == WM_SYSCHAR)
+    else if (g_pk_config.enable_ultimate_hotkey && (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP || uMsg == WM_SYSCHAR))
     {
         int slot = GetUltimateHotkeySlot(wParam);
         if (slot >= 0 && (g_swallow_ultimate_keyup[slot] || (GetKeyState(VK_MENU) & 0x8000)))

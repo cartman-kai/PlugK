@@ -24,6 +24,18 @@ tShowItemName fpShowItemName = (tShowItemName)0x0041A500;
 // Hook 处理函数
 // =============================================================
 
+static BOOL IsShowItemNameActive()
+{
+    if (g_pk_config.show_item_name)
+        return TRUE;
+
+    if (g_pk_config.hold_show_item_name &&
+        (GetAsyncKeyState(g_pk_config.key_hold_show_item_name) & 0x8000))
+        return TRUE;
+
+    return FALSE;
+}
+
 /**
  * @brief 拦截后的物品更新函数
  * * @param pThis 物品对象指针 (ECX)
@@ -39,7 +51,7 @@ void __fastcall Detour_ItemUpdate(void *pThis, void *_edx)
     }
 
     // 2. 检查功能开关
-    if (g_pk_config.show_item_name)
+    if (IsShowItemNameActive())
     {
         // 3. 强制调用显示名称
         // 传入 pThis，参数 1 (对应汇编中的 push 1)

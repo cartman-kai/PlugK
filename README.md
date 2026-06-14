@@ -26,19 +26,22 @@
   - 扩展存储
   - 自动填充扩展区域
   - 自定义单格物品数量
+  - 掉落倾向优化，优先补足玩家当前较少持有的同类型、同档位物品
 - 物品与商店
   - 宝石堆叠
   - 商店无限库存
   - 商店物品堆叠/随机数量
   - 商店内排序
-  - 地面物品显名
+  - 地面物品显名，默认按住 ` 键临时显示
 - 装备与合成
   - 自主镶嵌
   - 合成逻辑优化
 - 角色
   - 一键重置技能点，保留角色初始技能，返还普通技能消耗，并回退必杀技怒气上限
+  - 支持 Alt+1-4 快捷释放已学习的四个必杀技，可在配置中关闭
 - 快捷键
   - 支持通过 `Ctrl + 自定义按键` 触发常用功能
+  - 支持单独配置“长按显示物品名称”的快捷键
 
 ## 安装与使用
 
@@ -71,22 +74,23 @@ Enabled=1                ; 1=启用自定义分辨率
 Width=1280               ; 宽度
 Height=720               ; 高度
 
-[Inventory]
+[Player]
 EnableSort=1             ; 1=启用一键整理
 EnableExt=1              ; 1=启用大箱子
 AutoFillExt=1            ; 1=扩展箱子自动填充
+EnableDropBias=1         ; 1=启用掉落倾向优化
+ItemStackLimitEnabled=1  ; 1=启用单格物品数量上限
+ItemStackLimit=99        ; 单格物品数量上限 (1-127)
+EnableSkillRespec=1      ; 1=启用一键洗技能
+EnableUltimateHotkey=1   ; 1=启用 Alt+1-4 快捷释放必杀技
 
 [Item&Shop]
 EnableGemStack=1         ; 1=宝石堆叠
 InfStock=0               ; 1=商店无限库存
 OptimizeItem=1           ; 1=商店堆叠/随机数量
 EnableSort=1             ; 1=商店内排序
-EnableShowItemName=1     ; 1=地面显示物品名
-ItemStackLimitEnabled=1  ; 启用单格物品数量上限
-ItemStackLimit=99        ; 单格物品数量上限 (1-127)
-
-[Player]
-EnableSkillRespec=1      ; 1=启用一键洗技能
+EnableShowItemName=0     ; 1=长期显示地面物品名
+EnableHoldShowItemName=1 ; 1=启用长按快捷键显示地面物品名
 
 [Equipment]
 EnableGemInsert=1        ; 1=自己镶嵌宝石
@@ -99,6 +103,9 @@ StashSort=219            ; 储物箱整理 - [ [ ]
 InvPrev=190              ; 背包切换 (A/B) - [ . ]
 InvSort=220              ; 全背包整理 - [ \ ]
 InvSortCurrent=191       ; 当前页整理 - [ / ]
+switch_gem_stack=222     ; 切换宝石叠加开关 - [ ' ]
+key_switch_show_item_name=221 ; 长期显示物品名开关 - [ ] ]
+HoldShowItemName=192     ; 长按显示物品名 - [ ` ]
 SkillRespec=8            ; 洗技能 - [ Backspace ]
 ```
 
