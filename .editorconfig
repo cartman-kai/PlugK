@@ -1,0 +1,15 @@
+root = true
+
+[*]
+end_of_line = crlf
+insert_final_newline = true
+
+[*.{c,h,cpp,hpp,rc}]
+indent_style = space
+
+[launcher/**/*.{cpp,h,hpp}]
+indent_style = space
+indent_size = 2
+
+[*.{vcxproj,vcxproj.filters,props,targets,sln,md,txt,json,yml,yaml,ini,bat,ps1}]
+end_of_line = crlf
