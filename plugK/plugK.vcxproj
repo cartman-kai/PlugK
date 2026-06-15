@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -47,7 +47,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\auto_fill_ext.c" />
-    <ClCompile Include="src\config.c" />
+    <ClCompile Include="src\config.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\drop_bias.c" />
     <ClCompile Include="src\enemy_name.c" />
@@ -58,7 +62,11 @@
     <ClCompile Include="src\inv_auto_sort.c" />
     <ClCompile Include="src\item.c" />
     <ClCompile Include="src\item_stack.c" />
-    <ClCompile Include="src\pch.c" />
+    <ClCompile Include="src\pch.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\resolution.c" />
     <ClCompile Include="src\shop_inf_stock.c" />
     <ClCompile Include="src\shop_optimization.c" />
@@ -150,6 +158,8 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir)\deps\minhook\include;$(SolutionDir);$(ProjectDir)\inc;$(SolutionDir)deps\minhook\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -18,8 +18,15 @@ extern int g_InvPageB[50];
 
 // 1.05/2.01 的 SelectDropItem 函数：原版根据“掉落档位 + 类型”从 PropMdl 表中选出具体物品 ID。
 #define ADDR_105_SELECT_DROP_ITEM 0x00452200
+#define ADDR_105_ENEMY_DROP 0x00452420
+#define ADDR_105_RAND 0x0050E17A
 #define ADDR_105_CHAR_PTR 0x00558AC4
 #define ADDR_105_PROPMDL_TABLE 0x00548340
+#define ADDR_105_RANDPROP_TABLE 0x00548760
+
+// 1.05 中敌人死亡基础掉落调用点，以及敌人随机物品掉落判定用的 rand() 返回点。
+#define RET_105_PRIMARY_ENEMY_DROP 0x00435BE6
+#define RET_105_ITEM_DROP_RAND 0x00452576
 
 // 只处理敌人随机掉落生成函数里的 4 个调用点，避免影响敌人背包吐出、脚本、商店等其他选物路径。
 #define RET_105_DROP_SELECT_1 0x00452630
@@ -28,8 +35,14 @@ extern int g_InvPageB[50];
 #define RET_105_DROP_SELECT_4 0x00452663
 
 #define ADDR_201_SELECT_DROP_ITEM 0x0045E390
+#define ADDR_201_ENEMY_DROP 0x0045E5A0
+#define ADDR_201_RAND 0x005264DF
 #define ADDR_201_CHAR_PTR 0x00589A44
 #define ADDR_201_PROPMDL_TABLE 0x005788D0
+#define ADDR_201_RANDPROP_TABLE 0x00578D18
+
+#define RET_201_PRIMARY_ENEMY_DROP 0x0043F6B6
+#define RET_201_ITEM_DROP_RAND 0x0045E6F6
 
 #define RET_201_DROP_SELECT_1 0x0045E7B0
 #define RET_201_DROP_SELECT_2 0x0045E7C1
@@ -57,23 +70,54 @@ extern int g_InvPageB[50];
 #define RECENT_COUNT_CAP 20
 
 typedef int(__cdecl *tSelectDropItem)(int level, int type_hint);
+typedef int(__cdecl *tEnemyDrop)(int enemy_id, int position, int score);
+typedef int(__cdecl *tGameRand)(void);
 
 typedef struct DropBiasVersionConfig
 {
     DWORD select_drop_item;
+    DWORD enemy_drop;
+    DWORD rand_func;
     DWORD char_ptr;
     DWORD propmdl_table;
+    DWORD randprop_table;
+    DWORD primary_enemy_drop_return;
+    DWORD item_drop_rand_return;
     DWORD returns[4];
 } DropBiasVersionConfig;
 
+typedef struct DropExpectationState
+{
+    // 概率债务：本敌人连续未掉落时累加基础掉率，下一次一次掉落判定时提高命中率。
+    int debt;
+} DropExpectationState;
+
+typedef struct DropExpectationContext
+{
+    // 当前线程正在执行敌人/宝箱掉落主函数时才设置，用来让 rand hook 知道这次判定属于谁。
+    int active;
+    int primary_death_drop;
+    int enemy_id;
+    int base_rate;
+    DWORD thread_id;
+} DropExpectationContext;
+
 static tSelectDropItem fpSelectDropItem = NULL;
+static tEnemyDrop fpEnemyDrop = NULL;
+static tGameRand fpGameRand = NULL;
 static DropBiasVersionConfig g_drop_bias_config;
 static int g_recent_drop_count[MAX_ITEM_ID_TRACK];
+// 按 RandProp 角色 ID 独立累计，避免一个敌人的未掉落次数影响另一个敌人。
+static DropExpectationState g_drop_expectation_state[MAX_ITEM_ID_TRACK];
+static DropExpectationContext g_drop_expectation_context;
 static DWORD g_last_char_base = 0;
 static DWORD g_local_rng_state = 0;
 static int g_drop_bias_debug = 0;
+static int g_drop_bias_trace = 0;
 
 static DWORD FindPropRecordById(int item_id);
+static DWORD FindRandPropRecordById(int enemy_id);
+static void DropBias_ResetExpectation(void);
 
 typedef struct DropCandidate
 {
@@ -192,6 +236,15 @@ static const char *GetItemNameGbkById(int item_id)
     return ReadRecordNameGbk(record);
 }
 
+static const char *GetEnemyNameGbkById(int enemy_id)
+{
+    DWORD record = FindRandPropRecordById(enemy_id);
+    if (!record)
+        return NULL;
+
+    return ReadRecordNameGbk(record);
+}
+
 static void GbkToUtf8(const char *gbk_text, char *utf8_text, int utf8_size)
 {
     wchar_t wide_text[MAX_ITEM_NAME_BYTES];
@@ -235,6 +288,34 @@ static DWORD GetPropMdlBase(int *out_count)
     return base;
 }
 
+static DWORD GetTableBase(DWORD table, int max_count, int *out_count)
+{
+    int count;
+    DWORD base;
+
+    if (table == 0)
+        return 0;
+    if (IsBadReadPtr((void *)table, 8))
+        return 0;
+
+    count = *(int *)table;
+    base = *(DWORD *)(table + 4);
+
+    if (count <= 0 || count > max_count || base == 0)
+        return 0;
+    if (IsBadReadPtr((void *)base, count * 16))
+        return 0;
+
+    if (out_count)
+        *out_count = count;
+    return base;
+}
+
+static DWORD GetRandPropBase(int *out_count)
+{
+    return GetTableBase(g_drop_bias_config.randprop_table, 4096, out_count);
+}
+
 // 按物品 ID 在 PropMdl 中反查记录，用于获知原版已经抽中物品的类型和掉落档位。
 static DWORD FindPropRecordById(int item_id)
 {
@@ -253,6 +334,40 @@ static DWORD FindPropRecordById(int item_id)
     }
 
     return 0;
+}
+
+static DWORD FindRandPropRecordById(int enemy_id)
+{
+    int count;
+    DWORD base = GetRandPropBase(&count);
+    int i;
+
+    if (!base)
+        return 0;
+
+    for (i = 0; i < count; ++i)
+    {
+        DWORD record = base + i * 16;
+        if (ReadRecordInt(record, 1) == enemy_id)
+            return record;
+    }
+
+    return 0;
+}
+
+static int GetEnemyBaseDropRate(int enemy_id)
+{
+    DWORD record = FindRandPropRecordById(enemy_id);
+    int rate;
+
+    if (!record)
+        return -1;
+
+    rate = ReadRecordInt(record, 2);
+    if (rate < 0 || rate > 100)
+        return -1;
+
+    return rate;
 }
 
 // 获取当前角色对象。切换角色或重新读档导致角色地址变化时，清理近期掉落计数。
@@ -449,6 +564,136 @@ static void NoteRecentDrop(int item_id)
         ++g_recent_drop_count[item_id];
 }
 
+static int ClampInt(int value, int min_value, int max_value)
+{
+    if (value < min_value)
+        return min_value;
+    if (value > max_value)
+        return max_value;
+    return value;
+}
+
+static void DropBias_ResetExpectation(void)
+{
+    memset(g_drop_expectation_state, 0, sizeof(g_drop_expectation_state));
+    memset(&g_drop_expectation_context, 0, sizeof(g_drop_expectation_context));
+}
+
+static void DebugDropExpectationMiss(int enemy_id, int next_rate)
+{
+    char enemy_name[96];
+    char text[256];
+
+    if (!g_drop_bias_debug)
+        return;
+
+    GbkToUtf8(GetEnemyNameGbkById(enemy_id), enemy_name, sizeof(enemy_name));
+    if (enemy_name[0] == '\0')
+        snprintf(enemy_name, sizeof(enemy_name), "Unknown");
+
+    snprintf(text, sizeof(text),
+             "[PlugK][DropBias] enemy=%s(%d) next_drop_rate=%d%%\n",
+             enemy_name, enemy_id, next_rate);
+    OutputDebugStringA(text);
+
+    snprintf(text, sizeof(text),
+             "[掉落优化] %s(%d) 掉落概率提升至%d%%",
+             enemy_name, enemy_id, next_rate);
+    SendGameTips(text);
+}
+
+// DropBiasTrace 是排查 hook 边界用的详细日志，只写 OutputDebugString，不打扰测试人员的游戏提示。
+static void DebugDropExpectationContext(int enemy_id, int base_rate, int primary_death_drop, int score, void *return_address)
+{
+    char enemy_name[96];
+    char text[256];
+
+    if (!g_drop_bias_trace)
+        return;
+
+    GbkToUtf8(GetEnemyNameGbkById(enemy_id), enemy_name, sizeof(enemy_name));
+    if (enemy_name[0] == '\0')
+        snprintf(enemy_name, sizeof(enemy_name), "Unknown");
+
+    snprintf(text, sizeof(text),
+             "[PlugK][DropBias] EnemyDrop enemy=%s(%d) rate=%d primary=%d score=%d ret=0x%08X\n",
+             enemy_name, enemy_id, base_rate, primary_death_drop, score, (DWORD)return_address);
+    OutputDebugStringA(text);
+}
+
+static void DebugDropExpectationGate(int enemy_id, int base_rate, int debt, int chance, int roll, int success)
+{
+    char enemy_name[96];
+    char text[256];
+
+    if (!g_drop_bias_trace)
+        return;
+
+    GbkToUtf8(GetEnemyNameGbkById(enemy_id), enemy_name, sizeof(enemy_name));
+    if (enemy_name[0] == '\0')
+        snprintf(enemy_name, sizeof(enemy_name), "Unknown");
+
+    snprintf(text, sizeof(text),
+             "[PlugK][DropBias] Gate enemy=%s(%d) base=%d debt=%d chance=%d roll=%d success=%d\n",
+             enemy_name, enemy_id, base_rate, debt, chance, roll, success);
+    OutputDebugStringA(text);
+}
+
+// 只改写物品掉落 gate 的随机返回值，不额外调用游戏 rand()。
+// 成功时返回 0，让原版的 rand()%100 判定必定通过；失败时返回 99，让本次 gate 保持失败。
+static int ApplyDropExpectationRoll(int original_random)
+{
+    DropExpectationState *state;
+    int enemy_id;
+    int base_rate;
+    int chance;
+    int roll;
+    int success;
+    int next_rate;
+
+    if (!g_pk_config.enable_drop_bias)
+        return original_random;
+    if (!g_drop_expectation_context.active || !g_drop_expectation_context.primary_death_drop)
+        return original_random;
+    if (g_drop_expectation_context.thread_id != GetCurrentThreadId())
+        return original_random;
+
+    enemy_id = g_drop_expectation_context.enemy_id;
+    base_rate = g_drop_expectation_context.base_rate;
+    if (enemy_id < 0 || enemy_id >= MAX_ITEM_ID_TRACK || base_rate <= 0 || base_rate >= 100)
+    {
+        if (g_drop_bias_trace)
+        {
+            char text[160];
+            snprintf(text, sizeof(text),
+                     "[PlugK][DropBias] Gate skipped enemy=%d base=%d\n",
+                     enemy_id, base_rate);
+            OutputDebugStringA(text);
+        }
+        return original_random;
+    }
+
+    state = &g_drop_expectation_state[enemy_id];
+    chance = ClampInt(base_rate + state->debt, 0, 100);
+    roll = NextLocalRandom(100);
+    success = roll < chance;
+    DebugDropExpectationGate(enemy_id, base_rate, state->debt, chance, roll, success);
+
+    if (success)
+    {
+        state->debt -= (100 - base_rate);
+        state->debt = ClampInt(state->debt, 0, 100 - base_rate);
+        return 0;
+    }
+
+    state->debt += base_rate;
+    state->debt = ClampInt(state->debt, 0, 100 - base_rate);
+    next_rate = ClampInt(base_rate + state->debt, 0, 100);
+    DebugDropExpectationMiss(enemy_id, next_rate);
+
+    return 99;
+}
+
 static void DebugDropBiasDecision(int original_item_id, int selected_item_id, int item_type, int item_level, DropCandidate *candidates, int candidate_count)
 {
     char original_name[96];
@@ -548,9 +793,59 @@ int __cdecl Detour_SelectDropItem(int level, int type_hint)
     return ApplyDropBias(original_item_id);
 }
 
+int __cdecl Detour_GameRand(void)
+{
+    void *return_address = _ReturnAddress();
+    int original_random;
+
+    if (!fpGameRand)
+        return NextLocalRandom(RAND_MAX);
+
+    original_random = fpGameRand();
+    if ((DWORD)return_address != g_drop_bias_config.item_drop_rand_return)
+        return original_random;
+
+    return ApplyDropExpectationRoll(original_random);
+}
+
+int __cdecl Detour_EnemyDrop(int enemy_id, int position, int score)
+{
+    void *return_address = _ReturnAddress();
+    DropExpectationContext previous_context;
+    int result;
+
+    if (!fpEnemyDrop)
+        return 0;
+
+    previous_context = g_drop_expectation_context;
+
+    g_drop_expectation_context.active = 1;
+    // 固定返回地址只能覆盖部分路径；敌人、宝箱等都会进入同一掉落主函数。
+    // 一次掉落调用会传入 score=0，连招二次掉落才会传入实际得分。
+    // 不依赖“超过多少分触发二次掉落”的阈值，避免未来阈值调整时误判。
+    g_drop_expectation_context.primary_death_drop =
+        ((DWORD)return_address == g_drop_bias_config.primary_enemy_drop_return) ||
+        (score == 0);
+    g_drop_expectation_context.enemy_id = enemy_id;
+    g_drop_expectation_context.base_rate = GetEnemyBaseDropRate(enemy_id);
+    g_drop_expectation_context.thread_id = GetCurrentThreadId();
+
+    DebugDropExpectationContext(enemy_id,
+                                g_drop_expectation_context.base_rate,
+                                g_drop_expectation_context.primary_death_drop,
+                                score,
+                                return_address);
+
+    result = fpEnemyDrop(enemy_id, position, score);
+
+    g_drop_expectation_context = previous_context;
+    return result;
+}
+
 void DropBias_ResetRecent(void)
 {
     memset(g_recent_drop_count, 0, sizeof(g_recent_drop_count));
+    DropBias_ResetExpectation();
 }
 
 static int InitVersionConfig(int game_version, DropBiasVersionConfig *config)
@@ -560,8 +855,13 @@ static int InitVersionConfig(int game_version, DropBiasVersionConfig *config)
     if (game_version == VER_105)
     {
         config->select_drop_item = ADDR_105_SELECT_DROP_ITEM;
+        config->enemy_drop = ADDR_105_ENEMY_DROP;
+        config->rand_func = ADDR_105_RAND;
         config->char_ptr = ADDR_105_CHAR_PTR;
         config->propmdl_table = ADDR_105_PROPMDL_TABLE;
+        config->randprop_table = ADDR_105_RANDPROP_TABLE;
+        config->primary_enemy_drop_return = RET_105_PRIMARY_ENEMY_DROP;
+        config->item_drop_rand_return = RET_105_ITEM_DROP_RAND;
         config->returns[0] = RET_105_DROP_SELECT_1;
         config->returns[1] = RET_105_DROP_SELECT_2;
         config->returns[2] = RET_105_DROP_SELECT_3;
@@ -572,8 +872,13 @@ static int InitVersionConfig(int game_version, DropBiasVersionConfig *config)
     if (game_version == VER_201)
     {
         config->select_drop_item = ADDR_201_SELECT_DROP_ITEM;
+        config->enemy_drop = ADDR_201_ENEMY_DROP;
+        config->rand_func = ADDR_201_RAND;
         config->char_ptr = ADDR_201_CHAR_PTR;
         config->propmdl_table = ADDR_201_PROPMDL_TABLE;
+        config->randprop_table = ADDR_201_RANDPROP_TABLE;
+        config->primary_enemy_drop_return = RET_201_PRIMARY_ENEMY_DROP;
+        config->item_drop_rand_return = RET_201_ITEM_DROP_RAND;
         config->returns[0] = RET_201_DROP_SELECT_1;
         config->returns[1] = RET_201_DROP_SELECT_2;
         config->returns[2] = RET_201_DROP_SELECT_3;
@@ -593,6 +898,7 @@ static void LoadDropBiasDebugConfig(void)
     char *last_slash;
 
     g_drop_bias_debug = 0;
+    g_drop_bias_trace = 0;
 
     hModule = GetModuleHandleA("PlugK.dll");
     if (!hModule)
@@ -605,24 +911,90 @@ static void LoadDropBiasDebugConfig(void)
         *(last_slash + 1) = '\0';
     snprintf(ini_path, MAX_PATH, "%sPlugK.ini", dll_path);
 
+    // DropBiasDebug：面向测试人员的可见提示，只显示概率提升和物品替换结果。
     GetPrivateProfileStringA("Debug", "DropBiasDebug", "MISSING", value, sizeof(value), ini_path);
     if (strcmp(value, "MISSING") == 0)
         WritePrivateProfileStringA("Debug", "DropBiasDebug", "0", ini_path);
 
     g_drop_bias_debug = GetPrivateProfileIntA("Debug", "DropBiasDebug", 0, ini_path) != 0;
+
+    // DropBiasTrace：面向开发排查的详细路径日志，只输出到调试器。
+    GetPrivateProfileStringA("Debug", "DropBiasTrace", "MISSING", value, sizeof(value), ini_path);
+    if (strcmp(value, "MISSING") == 0)
+        WritePrivateProfileStringA("Debug", "DropBiasTrace", "0", ini_path);
+
+    g_drop_bias_trace = GetPrivateProfileIntA("Debug", "DropBiasTrace", 0, ini_path) != 0;
 }
 
 // 初始化版本地址并安装 Hook。配置关闭时不安装，降低对游戏流程的影响。
 void Mod_Drop_Bias_Init(int game_version)
 {
+    MH_STATUS status;
+    char text[256];
+
     if (!InitVersionConfig(game_version, &g_drop_bias_config))
         return;
     LoadDropBiasDebugConfig();
+    if (g_drop_bias_trace)
+    {
+        snprintf(text, sizeof(text),
+                 "[PlugK][DropBias] init version=%d enable=%d select=0x%08X enemy=0x%08X rand=0x%08X randprop=0x%08X\n",
+                 game_version,
+                 g_pk_config.enable_drop_bias,
+                 g_drop_bias_config.select_drop_item,
+                 g_drop_bias_config.enemy_drop,
+                 g_drop_bias_config.rand_func,
+                 g_drop_bias_config.randprop_table);
+        OutputDebugStringA(text);
+    }
     if (!g_pk_config.enable_drop_bias)
         return;
 
-    MH_CreateHook((LPVOID)g_drop_bias_config.select_drop_item,
-                  &Detour_SelectDropItem,
-                  (LPVOID *)&fpSelectDropItem);
-    MH_EnableHook((LPVOID)g_drop_bias_config.select_drop_item);
+    status = MH_CreateHook((LPVOID)g_drop_bias_config.select_drop_item,
+                           &Detour_SelectDropItem,
+                           (LPVOID *)&fpSelectDropItem);
+    if (g_drop_bias_trace)
+    {
+        snprintf(text, sizeof(text), "[PlugK][DropBias] hook SelectDropItem create=%d\n", status);
+        OutputDebugStringA(text);
+    }
+    status = MH_EnableHook((LPVOID)g_drop_bias_config.select_drop_item);
+    if (g_drop_bias_trace)
+    {
+        snprintf(text, sizeof(text), "[PlugK][DropBias] hook SelectDropItem enable=%d\n", status);
+        OutputDebugStringA(text);
+    }
+
+    if (g_drop_bias_config.enemy_drop && g_drop_bias_config.rand_func)
+    {
+        status = MH_CreateHook((LPVOID)g_drop_bias_config.enemy_drop,
+                               &Detour_EnemyDrop,
+                               (LPVOID *)&fpEnemyDrop);
+        if (g_drop_bias_trace)
+        {
+            snprintf(text, sizeof(text), "[PlugK][DropBias] hook EnemyDrop create=%d\n", status);
+            OutputDebugStringA(text);
+        }
+        status = MH_EnableHook((LPVOID)g_drop_bias_config.enemy_drop);
+        if (g_drop_bias_trace)
+        {
+            snprintf(text, sizeof(text), "[PlugK][DropBias] hook EnemyDrop enable=%d\n", status);
+            OutputDebugStringA(text);
+        }
+
+        status = MH_CreateHook((LPVOID)g_drop_bias_config.rand_func,
+                               &Detour_GameRand,
+                               (LPVOID *)&fpGameRand);
+        if (g_drop_bias_trace)
+        {
+            snprintf(text, sizeof(text), "[PlugK][DropBias] hook GameRand create=%d\n", status);
+            OutputDebugStringA(text);
+        }
+        status = MH_EnableHook((LPVOID)g_drop_bias_config.rand_func);
+        if (g_drop_bias_trace)
+        {
+            snprintf(text, sizeof(text), "[PlugK][DropBias] hook GameRand enable=%d\n", status);
+            OutputDebugStringA(text);
+        }
+    }
 }
