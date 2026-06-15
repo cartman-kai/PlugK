@@ -431,8 +431,7 @@ FodyWeavers.xsd
 tmp/
 temp/
 
-# Local notes and reverse-engineering knowledge base
-docs/reverse_kb/
+# Local notes
 docs/game_common.md
 docs/release_process.md
 docs/release_note/
@@ -445,7 +444,6 @@ RCa*
 # agent 
 
 .agent/
-AGENTS.md
 .vscode/
 .codex
 
