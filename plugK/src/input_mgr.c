@@ -13,6 +13,18 @@ static WNDPROC g_OriginalWndProc = NULL;
 static HWND g_hGameWindow = NULL;
 static BOOL g_swallow_ultimate_keyup[4] = {FALSE, FALSE, FALSE, FALSE};
 
+static BOOL IsAltDownForMessage(UINT uMsg, LPARAM lParam)
+{
+    if ((GetKeyState(VK_MENU) & 0x8000) || (GetAsyncKeyState(VK_MENU) & 0x8000))
+        return TRUE;
+
+    // WM_SYSKEY* / WM_SYSCHAR 的 bit 29 表示该消息生成时 Alt 处于按下状态。
+    if ((uMsg == WM_SYSKEYDOWN || uMsg == WM_SYSKEYUP || uMsg == WM_SYSCHAR) && (lParam & 0x20000000))
+        return TRUE;
+
+    return FALSE;
+}
+
 static int GetUltimateHotkeySlot(WPARAM wParam)
 {
     int key = (int)wParam;
@@ -31,7 +43,7 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     // Alt+1..4 与游戏原有数字键吃药冲突，启用时按下消息始终吞掉；重复消息只拦截不再次释放。
     if (g_pk_config.enable_ultimate_hotkey && (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN))
     {
-        if (GetKeyState(VK_MENU) & 0x8000)
+        if (IsAltDownForMessage(uMsg, lParam))
         {
             int slot = GetUltimateHotkeySlot(wParam);
             if (slot >= 0)
@@ -47,7 +59,7 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     else if (g_pk_config.enable_ultimate_hotkey && (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP || uMsg == WM_SYSCHAR))
     {
         int slot = GetUltimateHotkeySlot(wParam);
-        if (slot >= 0 && (g_swallow_ultimate_keyup[slot] || (GetKeyState(VK_MENU) & 0x8000)))
+        if (slot >= 0 && (g_swallow_ultimate_keyup[slot] || IsAltDownForMessage(uMsg, lParam)))
         {
             if (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP)
                 g_swallow_ultimate_keyup[slot] = FALSE;
