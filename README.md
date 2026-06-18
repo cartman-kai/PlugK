@@ -26,7 +26,6 @@
   - 扩展存储
   - 自动填充扩展区域
   - 自定义单格物品数量
-  - 掉落倾向优化，优先补足玩家当前较少持有的同类型、同档位物品
 - 物品与商店
   - 宝石堆叠
   - 商店无限库存
@@ -78,7 +77,6 @@ Height=720               ; 高度
 EnableSort=1             ; 1=启用一键整理
 EnableExt=1              ; 1=启用大箱子
 AutoFillExt=1            ; 1=扩展箱子自动填充
-EnableDropBias=1         ; 1=启用掉落倾向优化
 ItemStackLimitEnabled=1  ; 1=启用单格物品数量上限
 ItemStackLimit=99        ; 单格物品数量上限 (1-127)
 EnableSkillRespec=1      ; 1=启用一键洗技能
@@ -89,7 +87,6 @@ EnableGemStack=1         ; 1=宝石堆叠
 InfStock=0               ; 1=商店无限库存
 OptimizeItem=1           ; 1=商店堆叠/随机数量
 EnableSort=1             ; 1=商店内排序
-EnableShowItemName=0     ; 1=长期显示地面物品名
 EnableHoldShowItemName=1 ; 1=启用长按快捷键显示地面物品名
 
 [Equipment]
@@ -104,7 +101,6 @@ InvPrev=190              ; 背包切换 (A/B) - [ . ]
 InvSort=220              ; 全背包整理 - [ \ ]
 InvSortCurrent=191       ; 当前页整理 - [ / ]
 switch_gem_stack=222     ; 切换宝石叠加开关 - [ ' ]
-key_switch_show_item_name=221 ; 长期显示物品名开关 - [ ] ]
 HoldShowItemName=192     ; 长按显示物品名 - [ ` ]
 SkillRespec=8            ; 洗技能 - [ Backspace ]
 ```
