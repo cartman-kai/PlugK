@@ -127,7 +127,7 @@ static void MemoryPatchJump(DWORD source, DWORD target, SIZE_T length)
 // 原版只有 Type 20-29 会走这里；物品叠加补丁把范围扩展到 9-36 后，
 // Type 10-19 和 Type 30-35 也会误用 Type 20-29 的投掷栏槽位。
 // 这里按原游戏槽位规则重新分派：
-//   Type 10-19 -> 50-55 快捷道具槽
+//   Type 10-19 -> 50-55 快捷道具槽，需保留原版特殊恢复类排除条件
 //   Type 20-29 -> 56-61 投掷物品快捷槽
 //   其它类型   -> 0-49  普通背包
 __declspec(naked) void ItemInNewSlotDispatch()
@@ -152,6 +152,8 @@ __declspec(naked) void ItemInNewSlotDispatch()
         jmp use_inventory_slot
 
     use_consumable_slot:
+        cmp dword ptr [ebx+314h], 0
+        jne use_inventory_slot
         mov ecx, ebx
         call dword ptr [g_Addr_FindConsumableSlot]
         jmp store_slot
