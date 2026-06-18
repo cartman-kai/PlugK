@@ -8,6 +8,7 @@
 #include "shop_optimization.h"
 #include "skill_respec.h"
 #include "ultimate_hotkey.h"
+#include "item_split.h"
 
 static WNDPROC g_OriginalWndProc = NULL;
 static HWND g_hGameWindow = NULL;
@@ -139,6 +140,11 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
                     ExecuteSkillRespecFlow();
                     handled = TRUE;
                 }
+            }
+            else if (key == g_pk_config.key_split_stack)
+            {
+                ExecuteFirstInventoryItemSplitFlow();
+                handled = TRUE;
             }
 
             // ... 其他按键 (StashSort, StackToggle) ...

@@ -12,12 +12,6 @@ void ExecuteStashSortFlow();
 // 整理背包仅当前页面
 void ExecuteCurrentInventorySortFlow();
 
-// 供其他模块复用角色基址解析
-DWORD GetCharacterBase();
-
-// 初始化背包整理模块
-void Mod_inv_auto_sort_init(int game_version);
-
 // 物品对象结构
 // 根据您的逆向信息更新
 typedef struct
@@ -41,5 +35,14 @@ typedef struct
     DWORD Price;
 
 } ItemObject;
+
+// 供其他模块复用角色基址解析
+DWORD GetCharacterBase();
+
+// 供物品拆分复用可叠加判定
+BOOL IsStackable(ItemObject *pItem);
+
+// 初始化背包整理模块
+void Mod_inv_auto_sort_init(int game_version);
 
 #endif

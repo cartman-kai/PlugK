@@ -78,6 +78,9 @@
     <ClInclude Include="inc\item.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\item_split.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="inc\item_stack.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -141,6 +144,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\item.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\item_split.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\item_stack.c">

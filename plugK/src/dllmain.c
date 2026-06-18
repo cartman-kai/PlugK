@@ -19,6 +19,7 @@
 #include "enemy_name.h"
 #include "drop_bias.h"
 #include "ultimate_hotkey.h"
+#include "item_split.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -130,6 +131,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 必杀技快捷释放
             Mod_Ultimate_Hotkey_Init(ver);
+
+            // 叠加物品拆分
+            Mod_Item_Split_Init(ver);
 
             // 敌人名称显示增强
             Mod_Enemy_Name_Init(ver);

@@ -45,3 +45,4 @@ X(TYPE_KEY, key_switch_gem_stack, "Hotkeys", "switch_gem_stack", VK_OEM_7, "切�
 X(TYPE_KEY, key_switch_show_item_name, "Hotkeys", "key_switch_show_item_name", VK_OEM_6, "显示物品名称")
 X(TYPE_KEY, key_hold_show_item_name, "Hotkeys", "HoldShowItemName", VK_OEM_3, "长按显示物品名称")
 X(TYPE_KEY, key_skill_respec, "Hotkeys", "SkillRespec", VK_BACK, "重置技能")
+X(TYPE_KEY, key_split_stack, "Hotkeys", "SplitStack", 'X', "拆分第一个叠加物品")

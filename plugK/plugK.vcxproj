@@ -33,6 +33,7 @@
     <ClInclude Include="inc\input_mgr.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
     <ClInclude Include="inc\item.h" />
+    <ClInclude Include="inc\item_split.h" />
     <ClInclude Include="inc\item_stack.h" />
     <ClInclude Include="inc\pch.h" />
     <ClInclude Include="inc\resolution.h" />
@@ -61,6 +62,7 @@
     <ClCompile Include="src\input_mgr.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
     <ClCompile Include="src\item.c" />
+    <ClCompile Include="src\item_split.c" />
     <ClCompile Include="src\item_stack.c" />
     <ClCompile Include="src\pch.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
