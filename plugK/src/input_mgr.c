@@ -11,6 +11,9 @@
 #include "item_split.h"
 #include "auto_pickup.h"
 #include <MinHook.h>
+#include <intrin.h>
+
+#pragma intrinsic(_ReturnAddress)
 
 #define VER_105 105
 #define VER_201 201
@@ -18,6 +21,14 @@
 // 1.05 / 2.01 的键盘状态刷新函数；函数内会维护上一帧状态并调用 GetKeyboardState。
 #define ADDR_UPDATE_KEYBOARD_STATE_105 0x004CE3D0
 #define ADDR_UPDATE_KEYBOARD_STATE_201 0x004E3280
+
+// 快捷栏槽位执行函数。Alt+1..4 的原版吃药冲突在这里按槽位过滤，避免每帧改写数字键状态。
+#define ADDR_QUICK_SLOT_EXEC_105 0x004C3CA0
+#define ADDR_QUICK_SLOT_EXEC_201 0x004D8260
+
+// 键盘分发调用快捷栏执行后的返回地址。1.05 已用 IDA 静态确认；2.01 按同构函数迁移。
+#define RET_QUICK_SLOT_KEYBOARD_105 0x004C45DA
+#define RET_QUICK_SLOT_KEYBOARD_201 0x004D8BBA
 
 // 游戏键盘状态对象中，当前帧 VK 状态和上一帧/已按下标记的偏移。
 #define GAME_KEY_CURRENT_OFFSET 0x08
@@ -28,10 +39,16 @@ static HWND g_hGameWindow = NULL;
 static BOOL g_swallow_ultimate_keyup[4] = {FALSE, FALSE, FALSE, FALSE};
 // 组合键处理后持续屏蔽冲突键，直到玩家物理松开该键，避免松开 Alt/Ctrl 后补触发游戏逻辑。
 static BOOL g_block_key_until_release[256] = {FALSE};
+static BYTE g_latched_keys[256] = {0};
+static int g_latched_key_count = 0;
+static BOOL g_input_frame_alt_down = FALSE;
 
 typedef BOOL(__fastcall *tUpdateKeyboardState)(BYTE *keyboard_state, void *_edx);
+typedef int(__fastcall *tQuickSlotExec)(void *quick_slot_mgr, void *_edx, int slot);
 
 static tUpdateKeyboardState Original_UpdateKeyboardState = NULL;
+static tQuickSlotExec Original_QuickSlotExec = NULL;
+static DWORD g_quick_slot_keyboard_return = 0;
 
 static BOOL IsVkDown(int vk)
 {
@@ -81,6 +98,13 @@ static BOOL IsGameKeyCurrentlyDown(BYTE *keyboard_state, int vk)
     return (keyboard_state[GAME_KEY_CURRENT_OFFSET + vk] & 0xF0) != 0;
 }
 
+static BOOL IsAnyGameKeyDown(BYTE *keyboard_state, int vk, int left_vk, int right_vk)
+{
+    return IsGameKeyCurrentlyDown(keyboard_state, vk) ||
+           IsGameKeyCurrentlyDown(keyboard_state, left_vk) ||
+           IsGameKeyCurrentlyDown(keyboard_state, right_vk);
+}
+
 // 修饰键本身要继续交给游戏，只用于判断组合键条件，不作为被屏蔽的冲突键。
 static BOOL IsModifierKey(int vk)
 {
@@ -97,7 +121,11 @@ static void BlockGameKeyUntilRelease(BYTE *keyboard_state, int vk)
         return;
 
     if (IsGameKeyCurrentlyDown(keyboard_state, vk))
+    {
+        if (!g_block_key_until_release[vk] && g_latched_key_count < 256)
+            g_latched_keys[g_latched_key_count++] = (BYTE)vk;
         g_block_key_until_release[vk] = TRUE;
+    }
 
     ClearGameKeyState(keyboard_state, vk);
 }
@@ -105,81 +133,88 @@ static void BlockGameKeyUntilRelease(BYTE *keyboard_state, int vk)
 // 对已建立 latch 的冲突键继续清状态，直到游戏状态表显示该键已释放。
 static void ApplyLatchedGameKeyBlocks(BYTE *keyboard_state)
 {
-    int vk;
+    int i;
 
     if (!keyboard_state)
         return;
 
-    for (vk = 0; vk <= 0xFF; ++vk)
+    for (i = 0; i < g_latched_key_count;)
     {
+        int vk = g_latched_keys[i];
+
         if (!g_block_key_until_release[vk])
+        {
+            g_latched_keys[i] = g_latched_keys[--g_latched_key_count];
             continue;
+        }
 
         if (IsGameKeyCurrentlyDown(keyboard_state, vk))
+        {
             ClearGameKeyState(keyboard_state, vk);
+            ++i;
+        }
         else
+        {
             g_block_key_until_release[vk] = FALSE;
+            g_latched_keys[i] = g_latched_keys[--g_latched_key_count];
+        }
     }
 }
 
-// 根据当前配置判断 Ctrl 组合里的主键是否需要阻止游戏继续消费。
-static BOOL ShouldBlockCtrlHotkey(int vk)
+static BOOL IsGameCtrlDown(BYTE *keyboard_state)
 {
-    if (!IsVkDown(VK_CONTROL))
+    return IsAnyGameKeyDown(keyboard_state, VK_CONTROL, VK_LCONTROL, VK_RCONTROL);
+}
+
+static void BlockConfiguredCtrlHotkeys(BYTE *keyboard_state)
+{
+    if (!IsGameCtrlDown(keyboard_state))
+        return;
+
+    BlockGameKeyUntilRelease(keyboard_state, 'Z');
+
+    if (g_pk_config.stash_ext_enabled)
+    {
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_stash_swap);
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_inv_swap);
+    }
+
+    if (g_pk_config.inventory_sort)
+    {
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_inv_sort);
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_stash_sort);
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_inv_sort_current);
+    }
+
+    if (g_pk_config.enable_gem_stack)
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_switch_gem_stack);
+
+    if (g_pk_config.enable_skill_respec)
+        BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_skill_respec);
+
+    BlockGameKeyUntilRelease(keyboard_state, g_pk_config.key_split_stack);
+}
+
+static BOOL ShouldBlockAutoPickupZHotkey(BYTE *keyboard_state)
+{
+    if (!IsGameKeyCurrentlyDown(keyboard_state, 'Z'))
         return FALSE;
 
-    if (vk == 'Z')
-        return TRUE;
-
-    if (g_pk_config.stash_ext_enabled &&
-        (vk == g_pk_config.key_stash_swap || vk == g_pk_config.key_inv_swap))
-        return TRUE;
-
-    if (g_pk_config.inventory_sort &&
-        (vk == g_pk_config.key_inv_sort ||
-         vk == g_pk_config.key_stash_sort ||
-         vk == g_pk_config.key_inv_sort_current))
-        return TRUE;
-
-    if (g_pk_config.enable_gem_stack && vk == g_pk_config.key_switch_gem_stack)
-        return TRUE;
-
-    if (g_pk_config.enable_skill_respec && vk == g_pk_config.key_skill_respec)
-        return TRUE;
-
-    if (vk == g_pk_config.key_split_stack)
-        return TRUE;
-
-    return FALSE;
+    return IsGameCtrlDown(keyboard_state) ||
+           IsAnyGameKeyDown(keyboard_state, VK_SHIFT, VK_LSHIFT, VK_RSHIFT);
 }
 
 // 汇总所有 plugK 快捷键规则，只清理冲突键，不清理 Alt/Ctrl/Shift 等修饰键。
 static void ApplyPlugKInputBlockRules(BYTE *keyboard_state)
 {
-    int vk;
-
     if (!keyboard_state)
         return;
 
-    if (g_pk_config.enable_ultimate_hotkey && IsVkDown(VK_MENU))
-    {
-        BlockGameKeyUntilRelease(keyboard_state, '1');
-        BlockGameKeyUntilRelease(keyboard_state, '2');
-        BlockGameKeyUntilRelease(keyboard_state, '3');
-        BlockGameKeyUntilRelease(keyboard_state, '4');
-        BlockGameKeyUntilRelease(keyboard_state, VK_NUMPAD1);
-        BlockGameKeyUntilRelease(keyboard_state, VK_NUMPAD2);
-        BlockGameKeyUntilRelease(keyboard_state, VK_NUMPAD3);
-        BlockGameKeyUntilRelease(keyboard_state, VK_NUMPAD4);
-    }
+    g_input_frame_alt_down = IsAnyGameKeyDown(keyboard_state, VK_MENU, VK_LMENU, VK_RMENU);
 
-    for (vk = 0; vk <= 0xFF; ++vk)
-    {
-        if (ShouldBlockCtrlHotkey(vk))
-            BlockGameKeyUntilRelease(keyboard_state, vk);
-    }
+    BlockConfiguredCtrlHotkeys(keyboard_state);
 
-    if (AutoPickup_ShouldBlockZHotkey())
+    if (ShouldBlockAutoPickupZHotkey(keyboard_state))
         BlockGameKeyUntilRelease(keyboard_state, 'Z');
 
     ApplyLatchedGameKeyBlocks(keyboard_state);
@@ -192,6 +227,55 @@ static BOOL __fastcall Detour_UpdateKeyboardState(BYTE *keyboard_state, void *_e
     ApplyPlugKInputBlockRules(keyboard_state);
     AutoPickup_OnInputFrame();
     return result;
+}
+
+static BOOL ShouldBlockQuickSlotByAlt(int slot, DWORD return_address)
+{
+    if (!g_pk_config.enable_ultimate_hotkey)
+        return FALSE;
+
+    if (slot < 0 || slot >= 4)
+        return FALSE;
+
+    if (g_quick_slot_keyboard_return && return_address != g_quick_slot_keyboard_return)
+        return FALSE;
+
+    return g_input_frame_alt_down;
+}
+
+// 阻止 Alt+1..4 继续触发原版快捷栏 0..3；WndProc 仍负责执行 plugK 必杀技。
+static int __fastcall Detour_QuickSlotExec(void *quick_slot_mgr, void *_edx, int slot)
+{
+    DWORD return_address = (DWORD)_ReturnAddress();
+
+    if (ShouldBlockQuickSlotByAlt(slot, return_address))
+        return 0;
+
+    return Original_QuickSlotExec(quick_slot_mgr, _edx, slot);
+}
+
+static void InitQuickSlotBlockerHook(int game_version)
+{
+    LPVOID target = NULL;
+
+    if (game_version == VER_105)
+    {
+        target = (LPVOID)ADDR_QUICK_SLOT_EXEC_105;
+        g_quick_slot_keyboard_return = RET_QUICK_SLOT_KEYBOARD_105;
+    }
+    else if (game_version == VER_201)
+    {
+        target = (LPVOID)ADDR_QUICK_SLOT_EXEC_201;
+        g_quick_slot_keyboard_return = RET_QUICK_SLOT_KEYBOARD_201;
+    }
+
+    if (!target)
+        return;
+
+    if (MH_CreateHook(target, &Detour_QuickSlotExec, (LPVOID *)&Original_QuickSlotExec) != MH_OK)
+        return;
+
+    MH_EnableHook(target);
 }
 
 // 按版本安装共享的键盘状态刷新 Hook；1.05 和 2.01 的结构一致，只是函数地址不同。
@@ -377,6 +461,7 @@ DWORD WINAPI HookWindowThread(LPVOID lpParam)
 
 void Mod_Input_Mgr_Init(int game_version)
 {
+    InitQuickSlotBlockerHook(game_version);
     InitInputBlockerHook(game_version);
 
     // 启动一个临时线程去 Hook 窗口，因为 DLL 加载时窗口可能还没创建

@@ -95,22 +95,6 @@ static void SendAutoPickupStateTip(const char *state)
     SendGameTips(text);
 }
 
-static BOOL GbkToUtf8(const char *gbk_text, char *out_utf8, int out_size)
-{
-    wchar_t wide_text[MAX_AUTO_PICKUP_ITEM_NAME];
-    int wide_len;
-
-    if (gbk_text == NULL || out_utf8 == NULL || out_size <= 0)
-        return FALSE;
-
-    out_utf8[0] = '\0';
-    wide_len = MultiByteToWideChar(936, 0, gbk_text, -1, wide_text, MAX_AUTO_PICKUP_ITEM_NAME);
-    if (wide_len <= 0)
-        return FALSE;
-
-    return WideCharToMultiByte(CP_UTF8, 0, wide_text, -1, out_utf8, out_size, NULL, NULL) > 0;
-}
-
 static int ReadRecordInt(DWORD record, int column)
 {
     int count;
@@ -186,6 +170,23 @@ static int ShouldPickupGroundItem(int ground_item)
     return ShouldPickupItemType(item_type);
 }
 
+#if 0
+static BOOL GbkToUtf8(const char *gbk_text, char *out_utf8, int out_size)
+{
+    wchar_t wide_text[MAX_AUTO_PICKUP_ITEM_NAME];
+    int wide_len;
+
+    if (gbk_text == NULL || out_utf8 == NULL || out_size <= 0)
+        return FALSE;
+
+    out_utf8[0] = '\0';
+    wide_len = MultiByteToWideChar(936, 0, gbk_text, -1, wide_text, MAX_AUTO_PICKUP_ITEM_NAME);
+    if (wide_len <= 0)
+        return FALSE;
+
+    return WideCharToMultiByte(CP_UTF8, 0, wide_text, -1, out_utf8, out_size, NULL, NULL) > 0;
+}
+
 static BOOL GetGroundItemPickupInfo(int ground_item, char *out_name, int out_name_size, DWORD *out_count)
 {
     DWORD record;
@@ -242,6 +243,7 @@ static void SendAutoPickupGotTip(const char *item_name, DWORD count)
     snprintf(text, sizeof(text), "[自动拾取] 获得：%s 数量 %lu", item_name, (unsigned long)count);
     SendGameTips(text);
 }
+#endif
 
 static DWORD ReadGlobalDword(DWORD address)
 {
@@ -390,9 +392,11 @@ static int __cdecl Detour_PickupEntry(int ground_item, int action_this)
 {
     void *return_address = _ReturnAddress();
     int is_auto_z_pickup;
+#if 0
     char item_name[MAX_AUTO_PICKUP_ITEM_NAME];
     DWORD item_count = 0;
     BOOL has_pickup_info = FALSE;
+#endif
     int result;
 
     if (!fpPickupEntry)
@@ -406,13 +410,16 @@ static int __cdecl Detour_PickupEntry(int ground_item, int action_this)
         return 1;
     }
 
+#if 0
     if (is_auto_z_pickup)
         has_pickup_info = GetGroundItemPickupInfo(ground_item, item_name, sizeof(item_name), &item_count);
+#endif
 
     result = fpPickupEntry(ground_item, action_this);
+#if 0
     if (is_auto_z_pickup && has_pickup_info)
         SendAutoPickupGotTip(item_name, item_count);
-
+#endif
     return result;
 }
 
@@ -455,13 +462,6 @@ void AutoPickup_CycleMode(void)
 
     g_auto_pickup_mode = (AutoPickupMode)((g_auto_pickup_mode + 1) % AUTO_PICKUP_MODE_COUNT);
     SendAutoPickupStateTip("已切换");
-}
-
-BOOL AutoPickup_ShouldBlockZHotkey(void)
-{
-    return (GetAsyncKeyState('Z') & 0x8000) &&
-           ((GetAsyncKeyState(VK_CONTROL) & 0x8000) ||
-            (GetAsyncKeyState(VK_SHIFT) & 0x8000));
 }
 
 void Mod_Auto_Pickup_Init(int game_version)

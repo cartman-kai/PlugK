@@ -48,13 +48,18 @@
 
 Hook 影响判断：如果补丁只在窗口过程里吞掉 `WM_KEYDOWN` / `WM_SYSKEYDOWN`，可以阻止游戏 WndProc 分支收到该消息，但不一定阻止 `GetKeyboardState` 在下一帧看到 `VK_1..VK_4` 的按下状态。Alt+1..4 与药品槽位冲突时，应优先考虑同步屏蔽游戏键盘状态表、拦截 `GetKeyboardState` 返回数据，或在 `sub_4D8890` / `sub_4D8260` 边界按 Alt 状态过滤数字槽位。
 
-当前 plugK 实现选择 hook 键盘状态刷新函数：1.05 为 `sub_4CE3D0`，2.01 为 `sub_4E3280`。原函数刷新状态后，按 plugK 快捷键规则清理 `this+8+VK` 和 `this+0x108+VK`。WndProc 仍负责触发 plugK 功能，输入屏蔽 hook 只负责阻止游戏继续消费冲突键，不清理 `Alt` / `Ctrl` / `Shift` 等修饰键。
+当前 plugK 对 `Alt+1..4` 采用快捷栏槽位执行边界过滤，而不是每帧清理数字键状态。WndProc 仍负责识别 `Alt+1..4` 并调用 `ExecuteUltimateHotkeySlot(slot)`；原版快捷栏消费路径由槽位执行 hook 阻止：
 
-屏蔽使用“直到冲突键释放”的 latch：如果玩家先松开 Ctrl/Alt、冲突键仍处于物理按下状态，hook 会继续清理该冲突键，直到 `GetKeyboardState` 中该 VK 不再按下，避免原版逻辑在组合键末尾补触发一次；修饰键本身始终还给游戏。
+- 1.05 hook `sub_4C3CA0(slot)` / `0x004C3CA0`。该函数为 `__thiscall`，`ECX` 是快捷栏/技能栏对象，栈参数为 `slot`，结尾 `retn 4`。键盘分发 `sub_4C42B0` 调用后的返回地址为 `0x004C45DA`；鼠标/UI 路径 `sub_4C3DA0` 调用后的返回地址为 `0x004C3DCC`。plugK 只在返回地址为 `0x004C45DA`、`Alt` 按下且 `slot=0..3` 时跳过原函数，避免误伤按住 Alt 鼠标点击快捷栏。
+- 2.01 hook `sub_4D8260(slot)` / `0x004D8260`。该函数为 `__thiscall`，`slot < 6` 会查询快捷栏物品并执行动作。键盘分发 `sub_4D8890` 调用后的返回地址为 `0x004D8BBA`；鼠标/UI 路径 `sub_4D8360` 调用后的返回地址为 `0x004D838C`。plugK 只在返回地址为 `0x004D8BBA`、`Alt` 按下且 `slot=0..3` 时跳过原函数。
+
+Ctrl 组合键和自动拾取相关冲突仍通过键盘状态刷新 hook 处理：1.05 为 `sub_4CE3D0`，2.01 为 `sub_4E3280`。原函数刷新状态后，plugK 只清理实际配置使用的 Ctrl 主键和自动拾取 Z，不清理 `Alt` / `Ctrl` / `Shift` 等修饰键。每帧判断复用游戏已经刷新的 `keyboard_state`，不额外调用 `GetAsyncKeyState` / `GetKeyState` 轮询 Ctrl、Shift、Alt 或 Z。
+
+屏蔽使用“直到冲突键释放”的 latch：如果玩家先松开 Ctrl/Alt、冲突键仍处于物理按下状态，hook 会继续清理该冲突键，直到 `GetKeyboardState` 中该 VK 不再按下，避免原版逻辑在组合键末尾补触发一次；修饰键本身始终还给游戏。latch 只遍历当前已屏蔽的 VK 列表，不扫描全部 256 个 VK。
 
 1.05 / 2.01 已实现的屏蔽规则：
 
-- `Alt+1..4`：清理 `VK_1..VK_4` 和 `VK_NUMPAD1..VK_NUMPAD4`，避免触发原版快捷栏/药品槽位。
+- `Alt+1..4`：在快捷栏槽位执行边界阻止 `slot=0..3` 的原版动作，避免触发原版快捷栏/药品槽位。
 - `Ctrl+配置主键`：对背包/储物箱整理切换、宝石叠加切换、洗技能、拆分叠加物品等 plugK 快捷键，按当前 `g_pk_config.key_*` 配置清理对应主键。
 
 单键长按类功能例如 `HoldShowItemName` 当前不默认屏蔽游戏输入；这类按键应按功能目标单独决定是否屏蔽，避免玩家把单键配置成原版拾取/交互键后失去原版行为。
