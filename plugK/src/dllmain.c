@@ -141,8 +141,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 敌人随机掉落倾向优化
             Mod_Drop_Bias_Init(ver);
 
-            // 2. 启动统一的按键监听线程
-            Mod_Input_Mgr_Init();
+            // 2. 启动统一的按键监听线程，并传入版本号以安装对应输入 Hook
+            Mod_Input_Mgr_Init(ver);
         }
         else
         {

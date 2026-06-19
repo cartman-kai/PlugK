@@ -4,6 +4,7 @@
 #include "inv_auto_sort.h"
 #include "show_tips.h"
 #include <MinHook.h>
+#include <stdio.h>
 
 static DWORD g_Addr_ItemIn = 0;
 static DWORD g_Addr_FindStackSlot = 0;
@@ -16,6 +17,57 @@ static volatile LONG g_SuppressStackMerge = 0;
 
 typedef int(__fastcall *tFindStackSlot)(void *thisPtr, void *_edx, int itemId, int count, int *outCount);
 static tFindStackSlot fpOriginalFindStackSlot = NULL;
+
+// 游戏资源中的物品名是 GBK，提示系统使用 UTF-8，这里做一次安全转换。
+static BOOL GbkToUtf8(const char *gbkText, char *outUtf8, int outSize)
+{
+    wchar_t wideBuf[128];
+
+    if (gbkText == NULL || outUtf8 == NULL || outSize <= 0)
+        return FALSE;
+
+    outUtf8[0] = '\0';
+
+    int wideLen = MultiByteToWideChar(936, 0, gbkText, -1, wideBuf, (int)(sizeof(wideBuf) / sizeof(wideBuf[0])));
+    if (wideLen <= 0)
+        return FALSE;
+
+    return WideCharToMultiByte(CP_UTF8, 0, wideBuf, -1, outUtf8, outSize, NULL, NULL) > 0;
+}
+
+// 从物品对象运行时记录中读取显示名；对象字段来自逆向地址，必须用 SEH 保护坏指针。
+static BOOL GetItemNameUtf8(ItemObject *item, char *outName, int outSize)
+{
+    DWORD record;
+    DWORD textPtrs;
+    const char *gbkName;
+
+    if (item == NULL || outName == NULL || outSize <= 0)
+        return FALSE;
+
+    outName[0] = '\0';
+
+    __try
+    {
+        record = *(DWORD *)((DWORD)item + 0x14);
+        if (record == 0 || IsBadReadPtr((void *)record, 0x10))
+            return FALSE;
+
+        textPtrs = *(DWORD *)(record + 0x0C);
+        if (textPtrs == 0 || IsBadReadPtr((void *)textPtrs, sizeof(DWORD)))
+            return FALSE;
+
+        gbkName = *(const char **)textPtrs;
+        if (gbkName == NULL || IsBadReadPtr(gbkName, 1) || gbkName[0] == '\0')
+            return FALSE;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return FALSE;
+    }
+
+    return GbkToUtf8(gbkName, outName, outSize);
+}
 
 static int __fastcall Detour_FindStackSlot(void *thisPtr, void *_edx, int itemId, int count, int *outCount)
 {
@@ -162,6 +214,9 @@ void ExecuteFirstInventoryItemSplitFlow(void)
     DWORD splitCount;
     BOOL hasFreeSlot;
     BOOL created = FALSE;
+    char itemName[128];
+    char tipText[256];
+    BOOL hasItemName = FALSE;
 
     if (charBase == 0)
     {
@@ -201,6 +256,8 @@ void ExecuteFirstInventoryItemSplitFlow(void)
     itemId = item->ItemID;
     oldCount = item->Count;
     splitCount = 1;
+    // 在修改堆叠数量前取物品名，避免拆分流程改变对象状态后再读取。
+    hasItemName = GetItemNameUtf8(item, itemName, sizeof(itemName));
 
     hasFreeSlot = HasInventoryFreeSlot(slotArray);
     InterlockedIncrement(&g_SuppressStackMerge);
@@ -229,10 +286,23 @@ void ExecuteFirstInventoryItemSplitFlow(void)
 
     item->Count = oldCount - splitCount;
 
-    if (hasFreeSlot)
+    // 优先给出具体物品名；读取失败时退回通用提示，避免提示流程影响拆分。
+    if (hasItemName)
+    {
+        if (hasFreeSlot)
+            sprintf_s(tipText, sizeof(tipText), "[背包] %s 拆分出 1 个", itemName);
+        else
+            sprintf_s(tipText, sizeof(tipText), "[背包] %s 拆分出 1 个，背包已满，物品掉落在地面", itemName);
+        SendGameTips(tipText);
+    }
+    else if (hasFreeSlot)
+    {
         SendGameTips("[背包] 已从第一个可拆物品中拆出 1 个");
+    }
     else
+    {
         SendGameTips("[背包] 已从第一个可拆物品中拆出 1 个，背包已满，物品掉落在地面");
+    }
 }
 
 void Mod_Item_Split_Init(int game_version)
