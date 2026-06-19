@@ -20,6 +20,7 @@
 #include "drop_bias.h"
 #include "ultimate_hotkey.h"
 #include "item_split.h"
+#include "auto_pickup.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -140,6 +141,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 敌人随机掉落倾向优化
             Mod_Drop_Bias_Init(ver);
+
+            // 自动拾取地面物品
+            Mod_Auto_Pickup_Init(ver);
 
             // 2. 启动统一的按键监听线程，并传入版本号以安装对应输入 Hook
             Mod_Input_Mgr_Init(ver);

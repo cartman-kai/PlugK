@@ -75,6 +75,9 @@
     <ClInclude Include="inc\auto_fill_ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\auto_pickup.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="inc\item.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -141,6 +144,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\auto_fill_ext.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\auto_pickup.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\item.c">

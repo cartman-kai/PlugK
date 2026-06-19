@@ -9,6 +9,7 @@
 #include "skill_respec.h"
 #include "ultimate_hotkey.h"
 #include "item_split.h"
+#include "auto_pickup.h"
 #include <MinHook.h>
 
 #define VER_105 105
@@ -127,6 +128,9 @@ static BOOL ShouldBlockCtrlHotkey(int vk)
     if (!IsVkDown(VK_CONTROL))
         return FALSE;
 
+    if (vk == 'Z')
+        return TRUE;
+
     if (g_pk_config.stash_ext_enabled &&
         (vk == g_pk_config.key_stash_swap || vk == g_pk_config.key_inv_swap))
         return TRUE;
@@ -175,6 +179,9 @@ static void ApplyPlugKInputBlockRules(BYTE *keyboard_state)
             BlockGameKeyUntilRelease(keyboard_state, vk);
     }
 
+    if (AutoPickup_ShouldBlockZHotkey())
+        BlockGameKeyUntilRelease(keyboard_state, 'Z');
+
     ApplyLatchedGameKeyBlocks(keyboard_state);
 }
 
@@ -183,6 +190,7 @@ static BOOL __fastcall Detour_UpdateKeyboardState(BYTE *keyboard_state, void *_e
 {
     BOOL result = Original_UpdateKeyboardState(keyboard_state, _edx);
     ApplyPlugKInputBlockRules(keyboard_state);
+    AutoPickup_OnInputFrame();
     return result;
 }
 
@@ -238,10 +246,26 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     // 监听按键按下消息
     if (uMsg == WM_KEYDOWN)
     {
+        int key = (int)wParam;
+        BOOL key_repeat = (lParam & 0x40000000) != 0;
+
+        if (key == 'Z' && !key_repeat)
+        {
+            if (GetKeyState(VK_CONTROL) & 0x8000)
+            {
+                AutoPickup_Toggle();
+                return 0;
+            }
+            if (GetKeyState(VK_SHIFT) & 0x8000)
+            {
+                AutoPickup_CycleMode();
+                return 0;
+            }
+        }
+
         // 检查 Ctrl 是否按下
         if (GetKeyState(VK_CONTROL) & 0x8000)
         {
-            int key = (int)wParam;
             BOOL handled = FALSE;
 
             if (key == g_pk_config.key_stash_swap)

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="..\version_info.h" />
     <ClInclude Include="deps\minhook\include\MinHook.h" />
+    <ClInclude Include="inc\auto_pickup.h" />
     <ClInclude Include="inc\auto_fill_ext.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\config_def.h" />
@@ -47,6 +48,7 @@
     <ClInclude Include="inc\ultimate_hotkey.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\auto_pickup.c" />
     <ClCompile Include="src\auto_fill_ext.c" />
     <ClCompile Include="src\config.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
