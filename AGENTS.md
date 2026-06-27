@@ -11,7 +11,7 @@ msbuild plugK.sln /p:Configuration=Release /p:Platform=x86
 msbuild plugK.sln /p:Configuration=Debug /p:Platform=x86
 ```
 
-`Release|x86` 与现有 GitHub Actions 工作流保持一致，输出 `plugK.dll` 和 `plugKLauncher.exe` 到 `bin/Win32/Release/`。调试 Hook 或启动器界面时，优先直接打开 `plugK.sln`。
+`Release|x86` 与现有 GitHub Actions 工作流保持一致，输出 `plugK.dll` 和 `plugKLauncher.exe` 到 `bin/Win32/Release/`。本地验证和提交前检查必须至少构建 `Release|x86`；`Debug|x86` 仅用于调试 Hook 或启动器界面，不能替代 Release 构建。调试时优先直接打开 `plugK.sln`。
 
 ## 代码风格与命名约定
 遵循现有文件风格，不要做大范围格式化。补丁侧 C 代码普遍使用 include guard、按功能分组的 `#include`，以及类似 `Mod_inv_auto_sort_init` 这样的 PascalCase 初始化函数名。启动器侧 C++ 代码使用 `#pragma once`、小型辅助类，并且多个文件采用 2 空格缩进。新增模块请沿用现有命名模式，例如 `feature_name.c` 与对应的 `feature_name.h`。
@@ -37,7 +37,7 @@ msbuild plugK.sln /p:Configuration=Debug /p:Platform=x86
 
 ## 测试指南
 当前仓库没有自动化单元测试。一个改动至少应满足以下验证要求：
-1. 能够在 `x86` 配置下成功构建。
+1. 能够在 `Release|x86` 配置下成功构建；如额外构建 `Debug|x86`，也必须同时确认 Release 构建通过。
 2. 能通过 `plugKLauncher.exe` 或目标游戏正常加载，且没有明显回归。
 3. 提供受影响功能的手工验证说明，例如背包整理、分辨率修改或继承逻辑。
 
