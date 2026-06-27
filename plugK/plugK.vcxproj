@@ -21,9 +21,11 @@
   <ItemGroup>
     <ClInclude Include="..\version_info.h" />
     <ClInclude Include="deps\minhook\include\MinHook.h" />
+    <ClInclude Include="inc\auto_pickup.h" />
     <ClInclude Include="inc\auto_fill_ext.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\config_def.h" />
+    <ClInclude Include="inc\drop_bias.h" />
     <ClInclude Include="inc\enemy_name.h" />
     <ClInclude Include="inc\framework.h" />
     <ClInclude Include="inc\fuse_opt.h" />
@@ -32,6 +34,7 @@
     <ClInclude Include="inc\input_mgr.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
     <ClInclude Include="inc\item.h" />
+    <ClInclude Include="inc\item_split.h" />
     <ClInclude Include="inc\item_stack.h" />
     <ClInclude Include="inc\pch.h" />
     <ClInclude Include="inc\resolution.h" />
@@ -42,11 +45,23 @@
     <ClInclude Include="inc\skill_respec.h" />
     <ClInclude Include="inc\stash_ext.h" />
     <ClInclude Include="inc\ui_offset_fix.h" />
+    <ClInclude Include="inc\ultimate_hotkey.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="deps\minhook\src\buffer.c" />
+    <ClCompile Include="deps\minhook\src\hde\hde32.c" />
+    <ClCompile Include="deps\minhook\src\hde\hde64.c" />
+    <ClCompile Include="deps\minhook\src\hook.c" />
+    <ClCompile Include="deps\minhook\src\trampoline.c" />
+    <ClCompile Include="src\auto_pickup.c" />
     <ClCompile Include="src\auto_fill_ext.c" />
-    <ClCompile Include="src\config.c" />
+    <ClCompile Include="src\config.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\dllmain.c" />
+    <ClCompile Include="src\drop_bias.c" />
     <ClCompile Include="src\enemy_name.c" />
     <ClCompile Include="src\fuse_opt.c" />
     <ClCompile Include="src\gem_insert.c" />
@@ -54,8 +69,13 @@
     <ClCompile Include="src\input_mgr.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
     <ClCompile Include="src\item.c" />
+    <ClCompile Include="src\item_split.c" />
     <ClCompile Include="src\item_stack.c" />
-    <ClCompile Include="src\pch.c" />
+    <ClCompile Include="src\pch.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\resolution.c" />
     <ClCompile Include="src\shop_inf_stock.c" />
     <ClCompile Include="src\shop_optimization.c" />
@@ -63,12 +83,10 @@
     <ClCompile Include="src\skill_respec.c" />
     <ClCompile Include="src\stash_ext.c" />
     <ClCompile Include="src\ui_offset_fix.c" />
+    <ClCompile Include="src\ultimate_hotkey.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="plugK.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="deps\minhook\lib\libMinHook.x86.lib" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -146,6 +164,8 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir)\deps\minhook\include;$(SolutionDir);$(ProjectDir)\inc;$(SolutionDir)deps\minhook\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -172,7 +192,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)deps\minhook\lib</AdditionalLibraryDirectories>
       <AdditionalOptions>/VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -206,12 +225,10 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>$(SolutionDir)packages\minhook.1.3.3\lib\native\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(SolutionDir)packages\minhook.1.3.3\build\native\minhook.targets" Condition="Exists('$(SolutionDir)packages\minhook.1.3.3\build\native\minhook.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

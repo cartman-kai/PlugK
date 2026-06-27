@@ -27,10 +27,7 @@ foreach ($key in $requiredKeys) {
     }
 }
 
-$versionName = "{0}.{1}.{2}" -f $versionValues["VERSION_MAJOR"], $versionValues["VERSION_MINOR"], $versionValues["VERSION_REVISION"]
-if ($versionValues["VERSION_BUILD"] -ne 0) {
-    $versionName = "{0}.{1}" -f $versionName, $versionValues["VERSION_BUILD"]
-}
+$versionName = "{0}.{1}.{2}.{3}" -f $versionValues["VERSION_MAJOR"], $versionValues["VERSION_MINOR"], $versionValues["VERSION_REVISION"], $versionValues["VERSION_BUILD"]
 
 $archiveDir = Join-Path $OutDir $versionName
 New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null

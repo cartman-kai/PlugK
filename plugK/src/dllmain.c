@@ -17,6 +17,10 @@
 #include "inheritance.h"
 #include "skill_respec.h"
 #include "enemy_name.h"
+#include "drop_bias.h"
+#include "ultimate_hotkey.h"
+#include "item_split.h"
+#include "auto_pickup.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -126,11 +130,23 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 一键洗技能
             Mod_Skill_Respec_Init(ver);
 
+            // 必杀技快捷释放
+            Mod_Ultimate_Hotkey_Init(ver);
+
+            // 叠加物品拆分
+            Mod_Item_Split_Init(ver);
+
             // 敌人名称显示增强
             Mod_Enemy_Name_Init(ver);
 
-            // 2. 启动统一的按键监听线程
-            Mod_Input_Mgr_Init();
+            // 敌人随机掉落倾向优化
+            Mod_Drop_Bias_Init(ver);
+
+            // 自动拾取地面物品
+            Mod_Auto_Pickup_Init(ver);
+
+            // 2. 启动统一的按键监听线程，并传入版本号以安装对应输入 Hook
+            Mod_Input_Mgr_Init(ver);
         }
         else
         {
@@ -141,7 +157,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
+        break;
     case DLL_PROCESS_DETACH:
+        DropBias_ResetRecent();
         break;
     }
     return TRUE;

@@ -54,7 +54,7 @@ END
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION VER_FILE_VERSION
- PRODUCTVERSION 0,2,5,0
+ PRODUCTVERSION VER_FILE_VERSION
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,7 +71,7 @@ BEGIN
         BEGIN
             VALUE "CompanyName", VER_COMPANYNAME_STR
             VALUE "FileDescription", "PlugK 刀剑封魔录系列增强补丁"
-            VALUE "FileVersion", VER_FILE_VERSION
+            VALUE "FileVersion", VER_FILE_VERSION_STR
             VALUE "InternalName", "plugK.dll"
             VALUE "LegalCopyright", VER_COPYRIGHT_STR
             VALUE "OriginalFilename", "plugK.dll"

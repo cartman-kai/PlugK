@@ -40,37 +40,22 @@ jobs:
       - name: Build Solution
         run: msbuild plugK.sln /p:Configuration=Release /p:Platform=x86
 
-      - name: Prepare Package Folders
+      - name: Prepare Release Package
         shell: pwsh
         run: |
-          $releaseNotes = "docs/release_note/${{ github.ref_name }}.md"
-          if (-not (Test-Path -LiteralPath $releaseNotes)) {
-            Write-Error "Missing release notes: $releaseNotes"
-            exit 1
-          }
-
-          New-Item -ItemType Directory -Force -Path "release_zip" | Out-Null
-
-          Copy-Item "bin/Win32/Release/plugK.dll" -Destination "release_zip/"
-          Copy-Item "bin/Win32/Release/plugKLauncher.exe" -Destination "release_zip/"
-          Copy-Item "README.md" -Destination "release_zip/"
-          Copy-Item "LICENSE" -Destination "release_zip/"
-          Copy-Item "THIRD_PARTY_NOTICES.md" -Destination "release_zip/"
-          Copy-Item $releaseNotes -Destination "release_zip/更新说明.md"
-
-      - name: Create Zip Archive
-        shell: pwsh
-        run: Compress-Archive -Path "release_zip/*" -DestinationPath "plugK_${{ github.ref_name }}_build.zip"
+          $metadata = ./scripts/prepare_release_package.ps1 -TagName "${{ github.ref_name }}"
+          $metadata
+          $metadata | Where-Object { $_ -match '^[A-Z_]+=' } | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: plugK-Binary-Package
-          path: "*.zip"
+          path: "${{ env.ARCHIVE_PATH }}"
           retention-days: 30
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          body_path: "docs/release_note/${{ github.ref_name }}.md"
-          files: "plugK_${{ github.ref_name }}_build.zip"
+          body_path: "${{ env.RELEASE_NOTES_PATH }}"
+          files: "${{ env.ARCHIVE_PATH }}"

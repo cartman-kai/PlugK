@@ -75,7 +75,13 @@
     <ClInclude Include="inc\auto_fill_ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\auto_pickup.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="inc\item.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\item_split.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="inc\item_stack.h">
@@ -87,8 +93,29 @@
     <ClInclude Include="inc\skill_respec.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\drop_bias.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ultimate_hotkey.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="deps\minhook\src\buffer.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\hde\hde32.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\hde\hde64.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\hook.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\trampoline.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
     <ClCompile Include="src\config.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -134,7 +161,13 @@
     <ClCompile Include="src\auto_fill_ext.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\auto_pickup.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="src\item.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\item_split.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\item_stack.c">
@@ -146,15 +179,16 @@
     <ClCompile Include="src\skill_respec.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="src\drop_bias.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ultimate_hotkey.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="plugK.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="deps\minhook\lib\libMinHook.x86.lib">
-      <Filter>minhook</Filter>
-    </Library>
   </ItemGroup>
 </Project>
