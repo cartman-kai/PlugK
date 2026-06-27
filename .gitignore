@@ -440,6 +440,7 @@ docs/release_note/
 RCa*
 *.aps
 *.vcxproj.user
+release_notes.md
 
 # agent 
 
