@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -48,6 +48,11 @@
     <ClInclude Include="inc\ultimate_hotkey.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="deps\minhook\src\buffer.c" />
+    <ClCompile Include="deps\minhook\src\hde\hde32.c" />
+    <ClCompile Include="deps\minhook\src\hde\hde64.c" />
+    <ClCompile Include="deps\minhook\src\hook.c" />
+    <ClCompile Include="deps\minhook\src\trampoline.c" />
     <ClCompile Include="src\auto_pickup.c" />
     <ClCompile Include="src\auto_fill_ext.c" />
     <ClCompile Include="src\config.c">
@@ -82,9 +87,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="plugK.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="deps\minhook\lib\libMinHook.x86.lib" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -190,7 +192,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)deps\minhook\lib</AdditionalLibraryDirectories>
       <AdditionalOptions>/VERBOSE:LIB %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

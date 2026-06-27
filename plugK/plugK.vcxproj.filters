@@ -101,6 +101,21 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="deps\minhook\src\buffer.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\hde\hde32.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\hde\hde64.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\hook.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\minhook\src\trampoline.c">
+      <Filter>minhook</Filter>
+    </ClCompile>
     <ClCompile Include="src\config.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -175,10 +190,5 @@
     <ResourceCompile Include="plugK.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="deps\minhook\lib\libMinHook.x86.lib">
-      <Filter>minhook</Filter>
-    </Library>
   </ItemGroup>
 </Project>
