@@ -13,6 +13,7 @@
 
 namespace ModLoader {
 
+    // 获取启动器所在目录，后续所有文件检测和启动都以游戏根目录为基准。
     static std::string GetBasePath() {
         char path[MAX_PATH];
         GetModuleFileNameA(NULL, path, MAX_PATH);
@@ -20,20 +21,26 @@ namespace ModLoader {
         return std::string(path);
     }
 
+    static bool FileExists(const std::string& path) {
+        return PathFileExistsA(path.c_str()) == TRUE;
+    }
+
     FileStatus CheckStatus() {
-        FileStatus status;
+        FileStatus status = {};
         std::string base = GetBasePath();
-        status.dllExists = PathFileExistsA((base + "\\PlugK.dll").c_str());
-        status.iniExists = PathFileExistsA((base + "\\PlugK.ini").c_str());
-        status.exeExists = PathFileExistsA((base + "\\ComeOn.exe").c_str());
+        status.dllExists = FileExists(base + "\\PlugK.dll");
+        status.iniExists = FileExists(base + "\\PlugK.ini");
+        status.exeExists = FileExists(base + "\\ComeOn.exe");
         return status;
     }
 
+    // 在目标进程中分配 DLL 路径并远程调用 LoadLibraryA，返回值非零才认为注入成功。
     BOOL InjectDLL(PROCESS_INFORMATION* pi, const char* dllPath) {
         HANDLE hProcess = pi->hProcess;
         LPVOID pRemoteBuf;
         DWORD dwBufSize = (DWORD)(strlen(dllPath) + 1);
         FARPROC pThreadProc;
+        DWORD exitCode = 0;
 
         pRemoteBuf = VirtualAllocEx(hProcess, NULL, dwBufSize, MEM_COMMIT, PAGE_READWRITE);
         if (pRemoteBuf == NULL) return FALSE;
@@ -56,9 +63,16 @@ namespace ModLoader {
         }
 
         WaitForSingleObject(hThread, INFINITE);
+        GetExitCodeThread(hThread, &exitCode);
         CloseHandle(hThread);
         VirtualFreeEx(hProcess, pRemoteBuf, 0, MEM_RELEASE);
-        return TRUE;
+        return exitCode != 0;
+    }
+
+    static bool LaunchProcess(const std::string& exePath, const std::string& workDir, DWORD creationFlags, PROCESS_INFORMATION* outPi) {
+        STARTUPINFOA si = { sizeof(si) };
+        std::string cmdLine = "\"" + exePath + "\"";
+        return CreateProcessA(NULL, (LPSTR)cmdLine.c_str(), NULL, NULL, FALSE, creationFlags, NULL, workDir.c_str(), &si, outPi) != FALSE;
     }
 
     bool LaunchOriginal() {
@@ -66,22 +80,17 @@ namespace ModLoader {
         std::string exePath = base + "\\ComeOn.exe";
         std::string workDir = base;
 
-        STARTUPINFOA si = { sizeof(si) };
         PROCESS_INFORMATION pi = { 0 };
-        
-        // Quote the path for command line safety
-        std::string cmdLine = "\"" + exePath + "\"";
-
-        BOOL bRet = CreateProcessA(NULL, (LPSTR)cmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, workDir.c_str(), &si, &pi);
-        if (bRet) {
+        if (LaunchProcess(exePath, workDir, 0, &pi)) {
             CloseHandle(pi.hThread);
             CloseHandle(pi.hProcess);
-        } else {
-            char buf[256];
-            sprintf_s(buf, "启动失败 (原版): %d\n路径: %s", GetLastError(), exePath.c_str());
-            MessageBoxA(NULL, buf, "错误", MB_ICONERROR);
+            return true;
         }
-        return bRet != FALSE;
+
+        char buf[256];
+        sprintf_s(buf, "启动失败 (原版): %d\n路径: %s", GetLastError(), exePath.c_str());
+        MessageBoxA(NULL, buf, "错误", MB_ICONERROR);
+        return false;
     }
 
     bool LaunchWithMod() {
@@ -90,20 +99,13 @@ namespace ModLoader {
         std::string dllPath = base + "\\PlugK.dll";
         std::string workDir = base;
 
-        if (!PathFileExistsA(dllPath.c_str())) {
+        if (!FileExists(dllPath)) {
             MessageBoxA(NULL, "启动失败: 找不到 PlugK.dll", "错误", MB_ICONERROR);
             return false;
         }
 
-        STARTUPINFOA si = { sizeof(si) };
         PROCESS_INFORMATION pi = { 0 };
-
-        std::string cmdLine = "\"" + exePath + "\"";
-
-        // Launch suspended
-        BOOL bRet = CreateProcessA(NULL, (LPSTR)cmdLine.c_str(), NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, workDir.c_str(), &si, &pi);
-        
-        if (!bRet) {
+        if (!LaunchProcess(exePath, workDir, CREATE_SUSPENDED, &pi)) {
             char buf[256];
             sprintf_s(buf, "启动失败 (创建进程): %d", GetLastError());
             MessageBoxA(NULL, buf, "错误", MB_ICONERROR);
@@ -115,13 +117,13 @@ namespace ModLoader {
             CloseHandle(pi.hThread);
             CloseHandle(pi.hProcess);
             return true;
-        } else {
-            MessageBoxA(NULL, "启动失败: DLL 注入失败！\n请确保以管理员身份运行，并检查杀毒软件。", "错误", MB_ICONERROR);
-            TerminateProcess(pi.hProcess, 0);
-            CloseHandle(pi.hThread);
-            CloseHandle(pi.hProcess);
-            return false;
         }
+
+        MessageBoxA(NULL, "启动失败: DLL 注入失败！\n请确保以管理员身份运行，并检查杀毒软件。", "错误", MB_ICONERROR);
+        TerminateProcess(pi.hProcess, 0);
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        return false;
     }
     int GetGameVersion() {
         std::string exePath = GetBasePath() + "\\ComeOn.exe";
