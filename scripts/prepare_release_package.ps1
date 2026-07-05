@@ -143,6 +143,7 @@ $binaryDir = Join-Path -Path "bin/$PlatformOutput" -ChildPath $Configuration
 $requiredFiles = @(
   (Join-Path -Path $binaryDir -ChildPath "plugK.dll"),
   (Join-Path -Path $binaryDir -ChildPath "plugKLauncher.exe"),
+  (Join-Path -Path $binaryDir -ChildPath "PlugKLauncherHook.dll"),
   "README.md",
   "CHANGELOG.md",
   "LICENSE",

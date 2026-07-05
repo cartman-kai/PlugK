@@ -32,7 +32,7 @@ $versionName = "{0}.{1}.{2}.{3}" -f $versionValues["VERSION_MAJOR"], $versionVal
 $archiveDir = Join-Path $OutDir $versionName
 New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null
 
-$files = @("plugK.dll", "plugKLauncher.exe")
+$files = @("plugK.dll", "plugKLauncher.exe", "PlugKLauncherHook.dll")
 foreach ($file in $files) {
     $sourcePath = Join-Path $OutDir $file
     if (Test-Path -LiteralPath $sourcePath) {
