@@ -8,7 +8,7 @@
 
 - 支持《刀剑封魔录》`v1.05`
 - 支持《上古传说》`v2.01`
-- 不支持 Steam 版本
+- v0.7.2 开始支持 Steam 版本
 
 ## 主要功能
 
@@ -53,6 +53,7 @@
 2. 将以下文件解压到游戏根目录，也就是 `ComeOn.exe` 所在目录：
    - `plugK.dll`
    - `plugKLauncher.exe`
+   - `PlugKLauncherHook.dll`
 3. 运行 `plugKLauncher.exe`。
 
 首次启动时，启动器会在游戏根目录自动生成默认配置文件 `PlugK.ini`。发布包不依赖预置 INI 文件。

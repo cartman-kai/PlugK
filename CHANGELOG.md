@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.2
+
+### 更新内容
+
+1. 支持 Steam 版《刀剑封魔录》v1.05 与《上古传说》v2.01。
+2. 新增官方 Steam `launcher.exe` hook 启动链，在保留 `ComeOn.dll`、`steam_api.dll` 与 Steam 认证路径的前提下注入 `plugK.dll`。
+3. 启动器支持按游戏版本选择 Steam appid，并通过 `steam://rungameid/` 启动官方 launcher。
+4. 新增 `PlugKLauncherHook.dll`，用于在官方 launcher 启动 `ComeOn.exe` 时完成 MOD 注入。
+5. 补充 Steam 1.05 与 2.01 启动链逆向知识库记录。
+
 ## v0.7.1
 
 ### 更新内容

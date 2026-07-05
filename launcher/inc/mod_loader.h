@@ -7,6 +7,9 @@ namespace ModLoader {
         bool dllExists;
         bool iniExists;
         bool exeExists;
+        bool steamLauncherExists;
+        bool launcherHookExists;
+        bool steamReady;
     };
 
     FileStatus CheckStatus();
@@ -17,4 +20,6 @@ namespace ModLoader {
     BOOL InjectDLL(PROCESS_INFORMATION* pi, const char* dllPath);
 
     int GetGameVersion(); // Returns 105, 201 or 0 (unknown)
+    bool IsSteamAvailable();
+    bool IsSteam105Available();
 }
