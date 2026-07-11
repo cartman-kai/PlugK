@@ -10,6 +10,8 @@ game_file/mb/assets
 
 其中 `assets` 是解包工具添加出的目录。
 
+视频资源位于游戏目录的 `dhp/`。1.05 非 Steam 版已动态确认 `dhp/begin.dhp` 是开场动画文件，可由 VLC 直接播放；游戏内通过 DirectShow 路径播放，不是 `game_file/mb/assets` 表格资源。
+
 ## 文本格式
 
 - 编码：GB2312/GBK。

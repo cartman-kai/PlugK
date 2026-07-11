@@ -212,9 +212,10 @@ namespace ModLoader {
 
         DWORD start = GetTickCount();
         while (GetTickCount() - start < 30 * 60 * 1000) {
+            DWORD elapsed = GetTickCount() - start;
             HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
             if (snapshot == INVALID_HANDLE_VALUE) {
-                Sleep(500);
+                Sleep(elapsed < 30 * 1000 ? 50 : 500);
                 continue;
             }
 
@@ -251,7 +252,7 @@ namespace ModLoader {
                 } while (Process32Next(snapshot, &process));
             }
             CloseHandle(snapshot);
-            Sleep(500);
+            Sleep(elapsed < 30 * 1000 ? 50 : 500);
         }
 
         WriteLog("Steam launcher monitor stopped.");

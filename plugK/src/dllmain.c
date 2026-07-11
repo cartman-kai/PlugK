@@ -21,6 +21,7 @@
 #include "ultimate_hotkey.h"
 #include "item_split.h"
 #include "auto_pickup.h"
+#include "intro_skip.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -114,6 +115,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 屏幕震动效果禁用
             Mod_Screen_shake_effect_init(ver);
+
+            // 跳过开场动画
+            Mod_Intro_Skip_Init(ver);
 
             // 炼化物品数量优化
             Mod_Fuse_Count_Opt_init(ver);

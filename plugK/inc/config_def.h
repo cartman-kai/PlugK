@@ -6,6 +6,7 @@
 // --- 界面设置 ---
 X(TYPE_BOOL, ui_keep_center, "UI", "KeepCenter", 1, "保持界面居中 (防晃动)")
 X(TYPE_BOOL, disable_screen_shake, "UI", "disable_screen_shake", 1, "禁用屏幕震动")
+X(TYPE_BOOL, skip_intro_movie, "UI", "SkipIntroMovie", 1, "跳过开场动画")
 X(TYPE_BOOL, enable_fix_inheritance, "UI", "enable_fix_inheritance", 1, "通关后存档继承优化")
 X(TYPE_BOOL, show_enemy_hp, "UI", "ShowEnemyHp", 1, "显示敌人血量")
 X(TYPE_BOOL, optimize_drop_item_name_color, "UI", "OptimizeDropItemNameColor", 1, "掉落物品显示颜色优化")

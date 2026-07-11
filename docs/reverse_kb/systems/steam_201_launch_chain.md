@@ -6,6 +6,7 @@
 
 - 静态分析：IDA Pro，目标为 Steam 版 2.01 `launcher.exe`。
 - 动态调试：x32dbg，目标为 Steam 版 2.01 `launcher.exe`，点击“启动简体中文”后观察 `CreateProcessW` 调用点参数。
+- 动态调试：x32dbg，目标为 Steam 版 2.01 `launcher.exe`，观察开场动画期间的进程、窗口标题与 `ComeOn.dll` 基址。
 - 文件验证：Steam appmanifest `appmanifest_2924510.acf`，`appid = 2924510`，`installdir = 刀剑封魔录外传：上古传说`。
 
 ## 官方 launcher 启动 `ComeOn.exe`
@@ -43,6 +44,45 @@ dwThreadId  = 0x00004D08
 ```
 
 2.01 官方 launcher 没有使用 `CREATE_SUSPENDED`，也没有使用 1.05 中动态观察到的 `EXTENDED_STARTUPINFO_PRESENT`。因此 hook 时必须保留官方传入的 `STARTUPINFO` 指针和原始 flag，只追加 `CREATE_SUSPENDED` 用于注入窗口。
+
+## launcher 阶段开场动画
+
+Steam 2.01 的开场动画发生在 `launcher.exe` 进程内，而不是 `ComeOn.exe` 启动后的游戏主循环内。动态观察到动画播放时：
+
+```text
+ProcessName      = launcher
+MainWindowTitle  = ComeOn-begin-dhp
+Path             = <SteamLibrary>\steamapps\common\刀剑封魔录外传：上古传说\launcher.exe
+```
+
+同一目录下 `dhp\begin.dhp` 文件大小为 0 字节，说明该动画不是非 Steam 路径中的 `ComeOn.exe -> dhp\begin.dhp` 状态机播放。
+
+IDA 中 `ComeOn.dll` 有唯一导出：
+
+| 位置 | 说明 |
+| --- | --- |
+| `dll_DirectShow_play_media` / `0x10003E00` | 外部调用入口，接收宽字符串参数 |
+| `0x10003E0B` | 压入 `sub_10003A80` 作为 `CreateThread lpStartAddress` |
+| `sub_10003A80` / `0x10003A80` | 解析 `"RenderFile"`、`"put_Caption"`，创建 DirectShow graph，播放并等待结束 |
+
+动态样本中 `ComeOn.dll` 基址为 `0x6E6C0000`，因此运行时地址为：
+
+```text
+dll_DirectShow_play_media = 0x6E6C3E00
+sub_10003A80              = 0x6E6C3A80
+```
+
+这个阶段早于 `launcher.exe` 调用 `CreateProcessW` 创建 `ComeOn.exe`。因此跳过 Steam 2.01 开场动画不能只放在 `PlugK.dll` 内；应由已注入 `launcher.exe` 的 `PlugKLauncherHook.dll` 处理。
+
+当前实现边界：
+
+1. `PlugKLauncherHook.dll` 仍保留原有 `CreateProcessW` hook，用于后续创建 `ComeOn.exe` 时注入 `PlugK.dll`。
+2. 当配置 `UI.SkipIntroMovie=1` 时，`PlugKLauncherHook.dll` 轮询等待 `ComeOn.dll` 加载。
+3. 加载后解析 `dll_DirectShow_play_media` 中的线程入口，并 patch `ComeOn.dll` 自身 IAT 的 `CreateThread`。
+4. 仅当 `lpStartAddress == sub_10003A80` 且参数包含 `"RenderFile":"` 与 `begin.dhp`、`begin-dhp` 或 `ComeOn-begin-dhp` 时，把线程入口替换为立即返回的空线程。
+5. 不拦截其它线程创建，不 patch 官方文件，不绕过 `ComeOn.dll` 或 `steam_api.dll`。
+
+2026-07-08 回归修正：Steam 2.01 不安装 `launcher.exe` 的 `LoadLibraryW` IAT Hook，保持上述后台等待 `ComeOn.dll` 的方案。1.05 为了避开 `ComeOn.dll` 加载后的短窗口期才额外 hook `LoadLibraryW`；该同步路径不应扩展到 2.01。`ComeOn.dll` 的 `CreateThread` IAT patch 必须是幂等的，避免后台轮询与同步加载路径重复安装时把原始 `CreateThread` 指针覆盖成 detour 自身。
 
 ## `ComeOn.dll` 的 Steam 线索
 
