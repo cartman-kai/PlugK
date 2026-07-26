@@ -5,12 +5,12 @@
 #include <windows.h>
 
 // [新增] 供 InputMgr 调用 整理背包
-void ExecuteInventorySortFlow();
+void ExecuteInventorySortFlow(void);
 // 调用整理仓库
-void ExecuteStashSortFlow();
+void ExecuteStashSortFlow(void);
 
 // 整理背包仅当前页面
-void ExecuteCurrentInventorySortFlow();
+void ExecuteCurrentInventorySortFlow(void);
 
 // 物品对象结构
 // 根据您的逆向信息更新

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -32,6 +32,7 @@
     <ClInclude Include="inc\gem_insert.h" />
     <ClInclude Include="inc\inheritance.h" />
     <ClInclude Include="inc\input_mgr.h" />
+    <ClInclude Include="inc\intro_skip.h" />
     <ClInclude Include="inc\inv_auto_sort.h" />
     <ClInclude Include="inc\item.h" />
     <ClInclude Include="inc\item_split.h" />
@@ -67,6 +68,7 @@
     <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\inheritance.c" />
     <ClCompile Include="src\input_mgr.c" />
+    <ClCompile Include="src\intro_skip.c" />
     <ClCompile Include="src\inv_auto_sort.c" />
     <ClCompile Include="src\item.c" />
     <ClCompile Include="src\item_split.c" />

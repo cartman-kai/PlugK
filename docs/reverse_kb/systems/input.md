@@ -54,6 +54,7 @@ Hook 影响判断：如果补丁只在窗口过程里吞掉 `WM_KEYDOWN` / `WM_S
 - 2.01 hook `sub_4D8260(slot)` / `0x004D8260`。该函数为 `__thiscall`，`slot < 6` 会查询快捷栏物品并执行动作。键盘分发 `sub_4D8890` 调用后的返回地址为 `0x004D8BBA`；鼠标/UI 路径 `sub_4D8360` 调用后的返回地址为 `0x004D838C`。plugK 只在返回地址为 `0x004D8BBA`、`Alt` 按下且 `slot=0..3` 时跳过原函数。
 
 Ctrl 组合键和自动拾取相关冲突仍通过键盘状态刷新 hook 处理：1.05 为 `sub_4CE3D0`，2.01 为 `sub_4E3280`。原函数刷新状态后，plugK 只清理实际配置使用的 Ctrl 主键和自动拾取 Z，不清理 `Alt` / `Ctrl` / `Shift` 等修饰键。每帧判断复用游戏已经刷新的 `keyboard_state`，不额外调用 `GetAsyncKeyState` / `GetKeyState` 轮询 Ctrl、Shift、Alt 或 Z。
+- PlugK 快捷键处理以游戏键盘状态刷新 hook 为主：1.05 为 `sub_4CE3D0`，2.01 为 `sub_4E3280`。窗口子类化只作为输入 hook 不可用时的 fallback，避免 Steam/MFC 窗口标题或消息链差异导致 Ctrl/Alt 快捷键失效。
 
 屏蔽使用“直到冲突键释放”的 latch：如果玩家先松开 Ctrl/Alt、冲突键仍处于物理按下状态，hook 会继续清理该冲突键，直到 `GetKeyboardState` 中该 VK 不再按下，避免原版逻辑在组合键末尾补触发一次；修饰键本身始终还给游戏。latch 只遍历当前已屏蔽的 VK 列表，不扫描全部 256 个 VK。
 

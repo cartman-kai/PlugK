@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "stash_ext.h"
 #include "config.h"
 #include "inv_auto_sort.h" // 复用 GetCharacterBase

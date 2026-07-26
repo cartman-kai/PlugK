@@ -10,11 +10,19 @@ game_file/mb/assets
 
 其中 `assets` 是解包工具添加出的目录。
 
+视频资源位于游戏目录的 `dhp/`。1.05 非 Steam 版已动态确认 `dhp/begin.dhp` 是开场动画文件，可由 VLC 直接播放；游戏内通过 DirectShow 路径播放，不是 `game_file/mb/assets` 表格资源。
+
 ## 文本格式
 
 - 编码：GB2312/GBK。
 - 分隔：tab。
 - 来源：早期 Excel 导出的 txt 文本。
+
+## Font.txt
+
+2.01 解包资源位于 `game_file/201_fol/mb/assets/Font.txt`。当前包含 `ToolTip`、`敌人人名`、`big`、`对话` 四条记录，默认字体均为宋体，字号字段分别为 `9/9/18/9`。
+
+表头为 `Name / nHeight / fnWeight / lpszFace`，但 2.01 `sub_4C7640` 的静态分析确认 `fnWeight` 实际用于缩放 `LOGFONTA.lfWidth`，并不写入 `lfWeight`。开发字体替换功能时应保留原记录生成的高度和宽度参数，只替换字体名称，不应按表头误改字重。
 
 读取和统计数据表时应注意编码，避免用 UTF-8 默认解析导致中文字段或名称损坏。
 

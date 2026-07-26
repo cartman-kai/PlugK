@@ -42,6 +42,8 @@ static BOOL g_block_key_until_release[256] = {FALSE};
 static BYTE g_latched_keys[256] = {0};
 static int g_latched_key_count = 0;
 static BOOL g_input_frame_alt_down = FALSE;
+static BOOL g_input_hotkeys_available = FALSE;
+static BOOL g_game_hotkey_latched[256] = {FALSE};
 
 typedef BOOL(__fastcall *tUpdateKeyboardState)(BYTE *keyboard_state, void *_edx);
 typedef int(__fastcall *tQuickSlotExec)(void *quick_slot_mgr, void *_edx, int slot);
@@ -166,6 +168,124 @@ static BOOL IsGameCtrlDown(BYTE *keyboard_state)
     return IsAnyGameKeyDown(keyboard_state, VK_CONTROL, VK_LCONTROL, VK_RCONTROL);
 }
 
+static BOOL IsGameShiftDown(BYTE *keyboard_state)
+{
+    return IsAnyGameKeyDown(keyboard_state, VK_SHIFT, VK_LSHIFT, VK_RSHIFT);
+}
+
+static BOOL IsGameAltDown(BYTE *keyboard_state)
+{
+    return IsAnyGameKeyDown(keyboard_state, VK_MENU, VK_LMENU, VK_RMENU);
+}
+
+static BOOL ConsumeGameHotkeyPress(BYTE *keyboard_state, int vk)
+{
+    if (!keyboard_state || vk < 0 || vk > 0xFF)
+        return FALSE;
+
+    if (!IsGameKeyCurrentlyDown(keyboard_state, vk))
+    {
+        g_game_hotkey_latched[vk] = FALSE;
+        return FALSE;
+    }
+
+    if (g_game_hotkey_latched[vk])
+        return FALSE;
+
+    g_game_hotkey_latched[vk] = TRUE;
+    return TRUE;
+}
+
+static void ReleaseGameHotkeyLatch(BYTE *keyboard_state, int vk)
+{
+    if (!keyboard_state || vk < 0 || vk > 0xFF)
+        return;
+
+    if (!IsGameKeyCurrentlyDown(keyboard_state, vk))
+        g_game_hotkey_latched[vk] = FALSE;
+}
+
+static void HandleCtrlGameHotkey(BYTE *keyboard_state, int vk, void (*handler)(void))
+{
+    if (!handler)
+        return;
+
+    if (ConsumeGameHotkeyPress(keyboard_state, vk))
+        handler();
+}
+
+static void HandlePlugKHotkeysFromGameState(BYTE *keyboard_state)
+{
+    int i;
+
+    if (!keyboard_state)
+        return;
+
+    if (IsGameKeyCurrentlyDown(keyboard_state, 'Z'))
+    {
+        if (IsGameCtrlDown(keyboard_state) && ConsumeGameHotkeyPress(keyboard_state, 'Z'))
+            AutoPickup_Toggle();
+        else if (IsGameShiftDown(keyboard_state) && ConsumeGameHotkeyPress(keyboard_state, 'Z'))
+            AutoPickup_CycleMode();
+    }
+    else
+    {
+        g_game_hotkey_latched['Z'] = FALSE;
+    }
+
+    if (g_pk_config.enable_ultimate_hotkey && IsGameAltDown(keyboard_state))
+    {
+        for (i = 0; i < 4; ++i)
+        {
+            int vk = '1' + i;
+            if (ConsumeGameHotkeyPress(keyboard_state, vk))
+                ExecuteUltimateHotkeySlot(i);
+        }
+    }
+    else
+    {
+        for (i = 0; i < 4; ++i)
+            ReleaseGameHotkeyLatch(keyboard_state, '1' + i);
+    }
+
+    if (IsGameCtrlDown(keyboard_state))
+    {
+        if (g_pk_config.stash_ext_enabled)
+        {
+            HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_stash_swap, ToggleStash);
+            HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_inv_swap, ToggleInventory);
+        }
+
+        if (g_pk_config.inventory_sort)
+        {
+            HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_inv_sort, ExecuteInventorySortFlow);
+            HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_stash_sort, ExecuteStashSortFlow);
+            HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_inv_sort_current, ExecuteCurrentInventorySortFlow);
+        }
+
+        if (g_pk_config.enable_gem_stack && ConsumeGameHotkeyPress(keyboard_state, g_pk_config.key_switch_gem_stack))
+        {
+            ToggleChangeGemStackProp();
+            ToggleItemStackState();
+        }
+
+        if (g_pk_config.enable_skill_respec)
+            HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_skill_respec, ExecuteSkillRespecFlow);
+
+        HandleCtrlGameHotkey(keyboard_state, g_pk_config.key_split_stack, ExecuteFirstInventoryItemSplitFlow);
+    }
+    else
+    {
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_stash_swap);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_inv_swap);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_inv_sort);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_stash_sort);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_inv_sort_current);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_switch_gem_stack);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_skill_respec);
+        ReleaseGameHotkeyLatch(keyboard_state, g_pk_config.key_split_stack);
+    }
+}
 static void BlockConfiguredCtrlHotkeys(BYTE *keyboard_state)
 {
     if (!IsGameCtrlDown(keyboard_state))
@@ -224,6 +344,7 @@ static void ApplyPlugKInputBlockRules(BYTE *keyboard_state)
 static BOOL __fastcall Detour_UpdateKeyboardState(BYTE *keyboard_state, void *_edx)
 {
     BOOL result = Original_UpdateKeyboardState(keyboard_state, _edx);
+    HandlePlugKHotkeysFromGameState(keyboard_state);
     ApplyPlugKInputBlockRules(keyboard_state);
     AutoPickup_OnInputFrame();
     return result;
@@ -294,12 +415,16 @@ static void InitInputBlockerHook(int game_version)
     if (MH_CreateHook(target, &Detour_UpdateKeyboardState, (LPVOID *)&Original_UpdateKeyboardState) != MH_OK)
         return;
 
-    MH_EnableHook(target);
+    if (MH_EnableHook(target) == MH_OK)
+        g_input_hotkeys_available = TRUE;
 }
 
 // 自定义消息处理函数
 LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    if (g_input_hotkeys_available)
+        return CallWindowProc(g_OriginalWndProc, hwnd, uMsg, wParam, lParam);
+
     // Alt+1..4 与游戏原有数字键吃药冲突，只吞数字键消息；Alt 本身继续交给游戏。
     if (g_pk_config.enable_ultimate_hotkey && (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN))
     {
@@ -437,16 +562,82 @@ LRESULT CALLBACK PlugK_WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPara
     return CallWindowProc(g_OriginalWndProc, hwnd, uMsg, wParam, lParam);
 }
 
+// 窗口搜索上下文：只记录当前进程 PID 和最终选中的游戏主窗口。
+typedef struct WindowSearchContext
+{
+    DWORD process_id;
+    HWND selected;
+    HWND fallback;
+} WindowSearchContext;
+
+// Steam 版启动视频和 DirectShow 会创建额外窗口，这些都不能安装 PlugK_WndProc。
+static BOOL IsBlockedWindowClassOrTitle(const char *class_name, const char *title)
+{
+    return lstrcmpiA(class_name, "VideoWindow") == 0 ||
+           lstrcmpiA(class_name, "VideoRenderer") == 0 ||
+           lstrcmpiA(class_name, "FilterGraphWindow") == 0 ||
+           lstrcmpiA(title, "ActiveMovie Window") == 0;
+}
+
+// 枚举顶层窗口时先按 PID 过滤，再匹配已确认的游戏主窗口，避免拦截到其它进程或视频窗口。
+static BOOL CALLBACK EnumCurrentProcessWindows(HWND hwnd, LPARAM lParam)
+{
+    WindowSearchContext *ctx = (WindowSearchContext *)lParam;
+    DWORD window_process_id = 0;
+    char class_name[128] = {0};
+    char title[256] = {0};
+
+    // 只处理当前 ComeOn.exe 进程创建的窗口，影响范围比全局 FindWindowA 更小。
+    GetWindowThreadProcessId(hwnd, &window_process_id);
+    if (window_process_id != ctx->process_id)
+        return TRUE;
+
+    // 只接受可见且无 owner 的顶层窗口，跳过对话框、隐藏窗口和子窗口。
+    if (GetWindow(hwnd, GW_OWNER) || !IsWindowVisible(hwnd))
+        return TRUE;
+
+    GetClassNameA(hwnd, class_name, sizeof(class_name));
+    GetWindowTextA(hwnd, title, sizeof(title));
+
+    if (IsBlockedWindowClassOrTitle(class_name, title))
+        return TRUE;
+
+    // 优先接受已确认的游戏主窗口；否则保留当前 PID 下第一个可见顶层窗口作为 fallback。
+    if (lstrcmpiA(title, "daojian") == 0 ||
+        lstrcmpiA(class_name, "daojian") == 0 ||
+        lstrcmpiA(title, "DaojianServer") == 0)
+    {
+        ctx->selected = hwnd;
+        return FALSE;
+    }
+
+    if (!ctx->fallback)
+        ctx->fallback = hwnd;
+
+    return TRUE;
+}
+
+// 查找当前进程内的游戏主窗口，窗口尚未创建时返回 NULL 交给线程重试。
+static HWND FindCurrentProcessGameWindow(void)
+{
+    WindowSearchContext ctx;
+
+    ZeroMemory(&ctx, sizeof(ctx));
+    ctx.process_id = GetCurrentProcessId();
+    EnumWindows(EnumCurrentProcessWindows, (LPARAM)&ctx);
+    return ctx.selected ? ctx.selected : ctx.fallback;
+}
+
 // 寻找游戏窗口并 Hook 的临时线程 (只运行一次)
 DWORD WINAPI HookWindowThread(LPVOID lpParam)
 {
     int attempts = 0;
-    while (g_hGameWindow == NULL && attempts < 100)
+    // DLL 注入时窗口可能还没创建，最多等待约 30 秒。
+    while (g_hGameWindow == NULL && attempts < 150)
     {
-        g_hGameWindow = FindWindowA(NULL, "daojian"); // 需确认窗口标题，或用类名
-        if (!g_hGameWindow)
-            g_hGameWindow = FindWindowA("daojian", NULL);
-        // 也可以通过 GetCurrentProcessId() + EnumWindows 找到主窗口，这样最稳
+        g_hGameWindow = FindCurrentProcessGameWindow();
+        if (g_hGameWindow)
+            break;
 
         Sleep(200);
         attempts++;
@@ -454,6 +645,7 @@ DWORD WINAPI HookWindowThread(LPVOID lpParam)
 
     if (g_hGameWindow)
     {
+        // 只对子类化选中的游戏主窗口，所有热键消息最终仍可回到原 WndProc。
         g_OriginalWndProc = (WNDPROC)SetWindowLongPtr(g_hGameWindow, GWLP_WNDPROC, (LONG_PTR)PlugK_WndProc);
     }
     return 0;

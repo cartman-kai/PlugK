@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "plugKLauncher", "launcher\launcher.vcxproj", "{20157A81-7BFC-C560-8667-FF22CF9A99A2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PlugKLauncherHook", "launcher_hook\launcher_hook.vcxproj", "{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -36,6 +38,14 @@ Global
 		{20157A81-7BFC-C560-8667-FF22CF9A99A2}.Release|x64.Build.0 = Release|Win32
 		{20157A81-7BFC-C560-8667-FF22CF9A99A2}.Release|x86.ActiveCfg = Release|Win32
 		{20157A81-7BFC-C560-8667-FF22CF9A99A2}.Release|x86.Build.0 = Release|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Debug|x64.ActiveCfg = Debug|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Debug|x64.Build.0 = Debug|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Debug|x86.ActiveCfg = Debug|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Debug|x86.Build.0 = Debug|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Release|x64.ActiveCfg = Release|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Release|x64.Build.0 = Release|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Release|x86.ActiveCfg = Release|Win32
+		{7F5D9B1A-0FD7-4F2D-8EF5-1D257CA6F436}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.7.3
+
+### 更新内容
+
+1. 新增跳过开场动画功能，默认启用，可通过 `UI.SkipIntroMovie` 配置关闭。
+2. 支持《刀剑封魔录》v1.05 与《上古传说》v2.01 的 Steam、非 Steam 启动链；仅跳过开场 `begin.dhp`，不影响后续剧情视频。
+3. 补充分辨率、字体渲染与开场动画相关的逆向知识库记录。
+
+## v0.7.2
+
+### 更新内容
+
+1. 支持 Steam 版《刀剑封魔录》v1.05 与《上古传说》v2.01。
+2. 新增官方 Steam `launcher.exe` hook 启动链，在保留 `ComeOn.dll`、`steam_api.dll` 与 Steam 认证路径的前提下注入 `plugK.dll`。
+3. 启动器支持按游戏版本选择 Steam appid，并通过 `steam://rungameid/` 启动官方 launcher。
+4. 新增 `PlugKLauncherHook.dll`，用于在官方 launcher 启动 `ComeOn.exe` 时完成 MOD 注入。
+5. 补充 Steam 1.05 与 2.01 启动链逆向知识库记录。
+
+## v0.7.1
+
+### 更新内容
+
+1. 优化 PlugK 组合快捷键输入处理，优先在游戏键盘状态刷新 Hook 中执行快捷键逻辑，减少窗口消息链、兼容层或额外窗口导致的快捷键失效问题。
+2. 调整窗口子类化查找逻辑，仅在当前进程内选择游戏主窗口，并跳过视频/DirectShow 等非游戏窗口，降低误拦截窗口消息的风险。
+3. 启动器注入 PlugK.dll 时校验远程 `LoadLibraryA` 返回值，避免 DLL 实际加载失败但仍继续恢复游戏主线程。
+
 ## v0.7.0
 
 ### 更新内容

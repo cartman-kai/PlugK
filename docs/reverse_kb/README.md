@@ -8,7 +8,11 @@
 - [数据表与资源](data_tables.md)：游戏模板数据、编码、字段分隔与已确认表。
 - [物品系统](systems/items.md)：物品类型、物品池、容器槽位与基础概念。
 - [技能与招式系统](systems/skills.md)：技能 ID、招式 ID、必杀技准备/释放链路与运行时字段。
+- [文字渲染与内置颜色](systems/text_rendering.md)：通用文字输出、默认颜色字段、控制码与 2.01 字体生命周期。
 - [输入与快捷键系统](systems/input.md)：键盘状态刷新、数字键快捷栏/药品槽位与输入消费路径。
+- [开场动画](systems/intro_movie.md)：DHP 开场视频、DirectShow 播放链路与跳过 Hook 边界。
+- [Steam 1.05 启动链](systems/steam_105_launch_chain.md)：Steam launcher、`ComeOn.dll` Steam 初始化与 launcher hook 边界。
+- [Steam 2.01 启动链](systems/steam_201_launch_chain.md)：2.01 外传 Steam launcher、appid 与 launcher hook 复用边界。
 - [掉落机制](systems/drop.md)：随机掉落、连招二次掉落、函数链路与 hook 边界。
 - [1.05 调试模式](systems/debug_mode_105.md)：隐藏调试口令、调试命令解析与已知快捷键。
 - [角色运行时内存](runtime/player.md)：角色对象指针、容器偏移与物品对象字段。

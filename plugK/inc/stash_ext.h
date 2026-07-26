@@ -6,9 +6,9 @@
 // 初始化扩展储物箱模块
 void Mod_Stash_Ext_Init(int ver);
 // 切换储物箱
-void ToggleStash();
+void ToggleStash(void);
 // 切换背包
-void ToggleInventory();
+void ToggleInventory(void);
 
 // 清理资源
 void Mod_Stash_Ext_Cleanup();
