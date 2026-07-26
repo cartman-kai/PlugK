@@ -445,6 +445,7 @@ release_notes.md
 # agent 
 
 .agent/
+.agents
 .vscode/
 .codex
 
