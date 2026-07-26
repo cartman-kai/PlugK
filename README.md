@@ -15,6 +15,7 @@
 补丁通过 `PlugK.ini` 配置文件控制，功能大致分为以下几类：
 
 - 界面与显示
+  - 跳过开场动画
   - 自定义分辨率
   - UI 居中修正
   - 禁用部分屏幕震动
@@ -73,6 +74,7 @@
 [UI]
 KeepCenter=1             ; 1=画面居中(防晃动) 0=关
 disable_screen_shake=1   ; 1=禁用震动 0=开
+SkipIntroMovie=1         ; 1=跳过开场动画 0=播放开场动画
 enable_fix_inheritance=1 ; 1=存档继承优化 0=关
 ShowEnemyHp=1            ; 1=显示敌人血量 0=关
 OptimizeDropItemNameColor=1 ; 1=优化掉落物品名称颜色 0=关
