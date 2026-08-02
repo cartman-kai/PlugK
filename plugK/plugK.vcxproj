@@ -28,6 +28,7 @@
     <ClInclude Include="inc\drop_bias.h" />
     <ClInclude Include="inc\enemy_name.h" />
     <ClInclude Include="inc\framework.h" />
+    <ClInclude Include="inc\fps_limit.h" />
     <ClInclude Include="inc\fuse_opt.h" />
     <ClInclude Include="inc\gem_insert.h" />
     <ClInclude Include="inc\inheritance.h" />
@@ -64,6 +65,7 @@
     <ClCompile Include="src\dllmain.c" />
     <ClCompile Include="src\drop_bias.c" />
     <ClCompile Include="src\enemy_name.c" />
+    <ClCompile Include="src\fps_limit.c" />
     <ClCompile Include="src\fuse_opt.c" />
     <ClCompile Include="src\gem_insert.c" />
     <ClCompile Include="src\inheritance.c" />
