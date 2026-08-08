@@ -448,6 +448,8 @@ release_notes.md
 .agents
 .vscode/
 .codex
+.mcp.json
+CLAUDE.md
 
 game_file
 

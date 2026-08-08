@@ -1,6 +1,6 @@
 # 刀剑封魔录逆向知识库
 
-本目录用于沉淀刀剑封魔录的逆向、数据表、运行时内存结构与补丁开发知识。当前 IDA Pro 中主要分析对象为 `1.05` 版本程序；`2.01` 版本用于对照验证和移植 hook 思路。
+本目录用于沉淀刀剑封魔录的逆向、数据表、运行时内存结构与补丁开发知识。IDA Pro 中的分析对象会在 `1.05` 与 `2.01` 之间切换；使用函数地址前必须先核对对应版本的地址表，不能跨版本直接复用虚拟地址。
 
 ## 阅读入口
 
@@ -11,12 +11,18 @@
 - [文字渲染与内置颜色](systems/text_rendering.md)：通用文字输出、默认颜色字段、控制码与 2.01 字体生命周期。
 - [输入与快捷键系统](systems/input.md)：键盘状态刷新、数字键快捷栏/药品槽位与输入消费路径。
 - [开场动画](systems/intro_movie.md)：DHP 开场视频、DirectShow 播放链路与跳过 Hook 边界。
+- [1.05 DirectDraw / Direct3D7 窗口化调研](systems/ddraw_windowed_105.md)：原版显示链、实验结果与放弃轻量 Hook 方案的原因。
 - [1.05 帧率限制调研](systems/fps_limit_105.md)：1.05 主循环、每帧函数、模拟步长与可移植的限速 Hook 点。
+- [难度系统](systems/difficulty.md)：难度全局变量、1.05 静态交叉引用与自定义难度设计边界。
+- [受击、命中与连续受击保护](systems/combat_damage.md)：角色受击结算、隐藏伤害除数、攻击来源集合与动态验证边界。
+- [隐藏减伤常驻显示设计](systems/combat_mitigation_display.md)：常驻 HUD 的比例定义、显示语义、版本范围和共享文字 Hook 边界。
+- [1.05 战斗调研工具](systems/combat_probe.md)：受控角色属性修改、有限受击日志、Hook 归属与安全边界。
+- [1.05 战斗调研测试案例](testing/combat_probe_105.md)：少量受击即可完成的属性、单来源和双来源验证流程。
 - [Steam 1.05 启动链](systems/steam_105_launch_chain.md)：Steam launcher、`ComeOn.dll` Steam 初始化与 launcher hook 边界。
 - [Steam 2.01 启动链](systems/steam_201_launch_chain.md)：2.01 外传 Steam launcher、appid 与 launcher hook 复用边界。
 - [掉落机制](systems/drop.md)：随机掉落、连招二次掉落、函数链路与 hook 边界。
 - [1.05 调试模式](systems/debug_mode_105.md)：隐藏调试口令、调试命令解析与已知快捷键。
-- [角色运行时内存](runtime/player.md)：角色对象指针、容器偏移与物品对象字段。
+- [角色运行时内存](runtime/player.md)：角色数据对象大小、模板/基础属性、战斗对象候选字段、容器与物品字段。
 - [IDA 1.05 地址表](ida/1.05_addresses.md)：1.05 版本中已确认函数、全局变量和关键返回地址。
 - [IDA 2.01 地址表](ida/2.01_addresses.md)：2.01 版本中已确认函数、全局变量和对应关系。
 - [待确认问题](research_queue.md)：尚未完全翻译或需要动态调试确认的点。

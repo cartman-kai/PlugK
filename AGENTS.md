@@ -4,7 +4,15 @@
 `plugK.sln` 包含两个主要项目。`plugK/` 使用 C 构建补丁 DLL：头文件位于 `plugK/inc`，Hook 实现与功能模块位于 `plugK/src`，`plugK/deps/minhook` 中保存了随仓库提交的 MinHook 依赖。`launcher/` 使用 C++ 和 ImGui 构建 Windows 启动器：源码位于 `launcher/src`，对外头文件位于 `launcher/inc`，界面资源位于 `launcher/res`，ImGui 依赖位于 `launcher/deps/imgui`。构建产物输出到 `bin/Win32/<Configuration>/`，中间文件输出到 `build/<ProjectName>/Win32/<Configuration>/`。`tmp/` 仅作为调研与草稿目录，不应视为正式源码。
 
 ## 构建、测试与开发命令
-请使用 Visual Studio 2022 和 `v143` 工具集，或在 Developer PowerShell 中执行：
+本地构建请使用 `.agent/build-vs2026-x86.cmd`（本机安装的是 Visual Studio 2026，脚本默认以 `v145` 工具集覆盖项目文件中固定的 `v143`）：
+
+```powershell
+.\.agent\build-vs2026-x86.cmd           # 默认 Release
+.\.agent\build-vs2026-x86.cmd Debug     # Debug
+.\.agent\build-vs2026-x86.cmd Release v145
+```
+
+CI（`.github/workflows/build.yml`）与不使用该脚本的机器上，仍以 VS2022 `v143` 直接执行：
 
 ```powershell
 msbuild plugK.sln /p:Configuration=Release /p:Platform=x86
