@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$TagName = "",
   [string]$Configuration = "Release",
   [string]$PlatformOutput = "Win32",
@@ -14,7 +14,7 @@ function Get-PackageVersion {
   param([string]$VersionHeader)
 
   $versionValues = @{}
-  foreach ($line in Get-Content -LiteralPath $VersionHeader) {
+  foreach ($line in Get-Content -LiteralPath $VersionHeader -Encoding UTF8) {
     if ($line -match '^\s*#define\s+(VERSION_MAJOR|VERSION_MINOR|VERSION_REVISION|VERSION_BUILD)\s+(\d+)\s*$') {
       $versionValues[$matches[1]] = [int]$matches[2]
     }
@@ -48,7 +48,7 @@ function Get-ChangelogSection {
     throw "TagName is required to extract release notes"
   }
 
-  $lines = Get-Content -LiteralPath $ChangelogPath
+  $lines = Get-Content -LiteralPath $ChangelogPath -Encoding UTF8
   $headingPattern = '^(#{1,6})\s+' + [regex]::Escape($TagName) + '\s*$'
   $startIndex = -1
   $headingLevel = 0
