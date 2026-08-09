@@ -13,6 +13,7 @@ X(TYPE_BOOL, optimize_drop_item_name_color, "UI", "OptimizeDropItemNameColor", 1
 X(TYPE_BOOL, res_enabled, "UI", "Enabled", 1, "启用自定义分辨率")
 X(TYPE_INT, res_width, "UI", "Width", 1280, "宽度 (Width)")
 X(TYPE_INT, res_height, "UI", "Height", 720, "高度 (Height)")
+X(TYPE_INT, fps_limit, "UI", "FpsLimit", 0, "帧率上限 (0=桌面刷新率, -1=不限)")
 
 // --- 背包与储物箱 ---
 X(TYPE_BOOL, inventory_sort, "Player", "EnableSort", 1, "启用一键整理")

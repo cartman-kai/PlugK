@@ -22,6 +22,7 @@
 #include "item_split.h"
 #include "auto_pickup.h"
 #include "intro_skip.h"
+#include "fps_limit.h"
 #include <windows.h>
 #include <stdio.h>
 #include <MinHook.h>
@@ -148,6 +149,9 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
             // 自动拾取地面物品
             Mod_Auto_Pickup_Init(ver);
+
+            // 帧率限制（渲染节流，限制到桌面刷新率）
+            Mod_FpsLimit_Init(ver);
 
             // 2. 启动统一的按键监听线程，并传入版本号以安装对应输入 Hook
             Mod_Input_Mgr_Init(ver);

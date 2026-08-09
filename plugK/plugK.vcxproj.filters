@@ -102,6 +102,9 @@
     <ClInclude Include="inc\ultimate_hotkey.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\fps_limit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="deps\minhook\src\buffer.c">
@@ -120,6 +123,9 @@
       <Filter>minhook</Filter>
     </ClCompile>
     <ClCompile Include="src\config.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\fps_limit.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\dllmain.c">
