@@ -9,11 +9,14 @@
 - [物品系统](systems/items.md)：物品类型、物品池、容器槽位与基础概念。
 - [技能与招式系统](systems/skills.md)：技能 ID、招式 ID、必杀技准备/释放链路与运行时字段。
 - [文字渲染与内置颜色](systems/text_rendering.md)：通用文字输出、默认颜色字段、控制码与 2.01 字体生命周期。
+- [敌人 HUD 与血条显示](systems/enemy_hud.md)：敌人顶部信息、底部血条实现、资源链和 Hook 调用约定。
 - [输入与快捷键系统](systems/input.md)：键盘状态刷新、数字键快捷栏/药品槽位与输入消费路径。
 - [开场动画](systems/intro_movie.md)：DHP 开场视频、DirectShow 播放链路与跳过 Hook 边界。
 - [1.05 DirectDraw / Direct3D7 窗口化调研](systems/ddraw_windowed_105.md)：原版显示链、实验结果与放弃轻量 Hook 方案的原因。
+- [1.05 D3D7 CPU facade](systems/d3d7_facade_105.md)：plugK 内置 CPU D3D7 COM facade、1.05 Hook 边界与 2.01 适配规则。
 - [1.05 帧率限制调研](systems/fps_limit_105.md)：1.05 主循环、每帧函数、模拟步长与可移植的限速 Hook 点。
 - [难度系统](systems/difficulty.md)：难度全局变量、1.05 静态交叉引用与自定义难度设计边界。
+- [1.05 敌人 AI 与角色动作模板](systems/enemy_ai_105.md)：角色模板、动作组映射、敌人状态机、特殊性格与群体协同逻辑。
 - [受击、命中与连续受击保护](systems/combat_damage.md)：角色受击结算、隐藏伤害除数、攻击来源集合与动态验证边界。
 - [隐藏减伤常驻显示设计](systems/combat_mitigation_display.md)：常驻 HUD 的比例定义、显示语义、版本范围和共享文字 Hook 边界。
 - [1.05 战斗调研工具](systems/combat_probe.md)：受控角色属性修改、有限受击日志、Hook 归属与安全边界。
@@ -22,6 +25,8 @@
 - [Steam 2.01 启动链](systems/steam_201_launch_chain.md)：2.01 外传 Steam launcher、appid 与 launcher hook 复用边界。
 - [掉落机制](systems/drop.md)：随机掉落、连招二次掉落、函数链路与 hook 边界。
 - [1.05 调试模式](systems/debug_mode_105.md)：隐藏调试口令、调试命令解析与已知快捷键。
+- [1.05 client/server 遗留架构](systems/client_server_105.md)：`sub_4890A0` 模式分支、进程内包队列与联机能力边界。
+- [2.01 client/server 内部包管线](systems/client_server_201.md)：`DaojianServer`/`DaojianClient` 模式组合、命令队列、二进制包入口和 Client 消费边界。
 - [角色运行时内存](runtime/player.md)：角色数据对象大小、模板/基础属性、战斗对象候选字段、容器与物品字段。
 - [IDA 1.05 地址表](ida/1.05_addresses.md)：1.05 版本中已确认函数、全局变量和关键返回地址。
 - [IDA 2.01 地址表](ida/2.01_addresses.md)：2.01 版本中已确认函数、全局变量和对应关系。

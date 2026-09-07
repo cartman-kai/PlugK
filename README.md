@@ -21,7 +21,7 @@
   - UI 居中修正
   - 禁用部分屏幕震动
   - 存档继承优化
-  - 敌人血量显示
+  - 敌人血量显示，可将血条移动到敌人下方
   - 掉落物品名称颜色优化
 - 背包与储物箱
   - 一键整理
@@ -77,7 +77,8 @@ KeepCenter=1             ; 1=画面居中(防晃动) 0=关
 disable_screen_shake=1   ; 1=禁用震动 0=开
 SkipIntroMovie=1         ; 1=跳过开场动画 0=播放开场动画
 enable_fix_inheritance=1 ; 1=存档继承优化 0=关
-ShowEnemyHp=1            ; 1=显示敌人血量 0=关
+ShowEnemyHp=1            ; 1=显示敌人血量数字 0=关
+MoveEnemyHpToBottom=0    ; 1=血条移到敌人下方，名称仅悬停或锁定时显示 0=顶部原版位置
 OptimizeDropItemNameColor=1 ; 1=优化掉落物品名称颜色 0=关
 Enabled=1                ; 1=启用自定义分辨率
 Width=1280               ; 宽度
@@ -127,6 +128,8 @@ SplitStack=88            ; 拆分第一个叠加物品 - [ X ]
 DropBiasDebug=0          ; 1=显示掉落倾向调试提示
 DropBiasTrace=0          ; 1=输出掉落倾向详细调试日志
 ```
+
+启用 `MoveEnemyHpToBottom=1` 后，顶部头像、原版血条和原版名称不再绘制；敌人下方显示常驻血条，名称只在鼠标悬停或锁定目标上方显示。`ShowEnemyHp` 仍可单独控制 `当前值/总量` 数字，关闭后只保留血条。
 
 ## 第三方组件
 

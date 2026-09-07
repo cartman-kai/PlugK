@@ -9,6 +9,7 @@ X(TYPE_BOOL, disable_screen_shake, "UI", "disable_screen_shake", 1, "禁用屏�
 X(TYPE_BOOL, skip_intro_movie, "UI", "SkipIntroMovie", 1, "跳过开场动画")
 X(TYPE_BOOL, enable_fix_inheritance, "UI", "enable_fix_inheritance", 1, "通关后存档继承优化")
 X(TYPE_BOOL, show_enemy_hp, "UI", "ShowEnemyHp", 1, "显示敌人血量")
+X(TYPE_BOOL, move_enemy_hp_bottom, "UI", "MoveEnemyHpToBottom", 0, "底部常驻血条，名称仅显示在悬停或锁定目标上（隐藏头像）")
 X(TYPE_BOOL, optimize_drop_item_name_color, "UI", "OptimizeDropItemNameColor", 1, "掉落物品显示颜色优化")
 X(TYPE_BOOL, res_enabled, "UI", "Enabled", 1, "启用自定义分辨率")
 X(TYPE_INT, res_width, "UI", "Width", 1280, "宽度 (Width)")

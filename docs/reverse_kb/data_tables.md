@@ -20,7 +20,7 @@ game_file/mb/assets
 
 ## Font.txt
 
-2.01 解包资源位于 `game_file/201_fol/mb/assets/Font.txt`。当前包含 `ToolTip`、`敌人人名`、`big`、`对话` 四条记录，默认字体均为宋体，字号字段分别为 `9/9/18/9`。
+2.01 解包资源位于 `game_file/201/fol/mb/Font.txt`。当前包含 `ToolTip`、`敌人人名`、`big`、`对话` 四条记录，默认字体均为宋体，字号字段分别为 `9/9/18/9`。
 
 表头为 `Name / nHeight / fnWeight / lpszFace`，但 2.01 `sub_4C7640` 的静态分析确认 `fnWeight` 实际用于缩放 `LOGFONTA.lfWidth`，并不写入 `lfWeight`。开发字体替换功能时应保留原记录生成的高度和宽度参数，只替换字体名称，不应按表头误改字重。
 
@@ -38,9 +38,32 @@ game_file/mb/assets
 
 注意：运行时释放技能/必杀技使用的是招式 ID，也就是 `method_id`。角色是否拥有某个技能，应通过角色技能链中的技能 ID 判断。
 
+## 1.05 敌人 AI 与角色动作表
+
+以下路径均相对于 `mb`，不包含解包目录或本机完整路径。
+
+| 表 | 编码与格式 | 用途 |
+| --- | --- | --- |
+| `Role.txt` | GB2312、Tab、带表头 | 通用角色模板；包含玩家、敌人、NPC 和部分机关/场景对象 |
+| `RolePrivate.txt` | GB18030 回退、Tab、带表头 | 角色等级、速度、索敌范围、性格2、HP/AT/DF 等私有属性 |
+| `Role.rmd` | GB2312、Tab、无表头 | `角色ID -> Skill.gop 技能组列表` |
+| `Skill.gop` | GB18030 回退、Tab、无表头 | `技能组ID -> Skill.ini 动作列表` |
+| `Skill.ini` | GB18030 回退、Tab、无表头 | 单个动作的类型、权重、条件和执行参数 |
+| `BeastieMdl.txt` | GB2312、Tab、带表头 | 小动物/环境生物模板，含对人反应和程序标识等字段 |
+
+`Role.rmd` 的记录格式已经确认：
+
+```text
+角色ID    技能组数量    Skill.gop组ID1    Skill.gop组ID2    ...
+```
+
+`Skill.gop` 当前确认自然列 4 是技能组 ID，自然列 7 是成员动作数量，自然列 8 起是 `Skill.ini` 动作 ID。
+
+`Skill.ini` 当前确认自然列 4 是动作 ID、自然列 12 是距离/范围相关原始量、自然列 22 是随机选择调节值、自然列 23 是动作类别。自然列 38 是可变子记录数量，自然列 39 起每八个整数构成一条子记录。完整字段和程序选择规则见 [1.05 敌人 AI 与角色动作模板](systems/enemy_ai_105.md)。
+
 ## `player/Init.txt`
 
-1.05 的角色初始化表位于 `game_file/mb/assets/player/Init.txt`，2.01 对应表位于 `game_file/201_fol/mb/assets/player/Init.txt`，均为 GB2312/GBK 编码、tab 分隔。1.05 `sub_405300` 加载 `player\init.txt` 到运行时表头 `0x00548790`；2.01 `sub_48D690` 同样把按角色 ID 查询到的记录指针保存到角色数据对象 `+0x308`。
+1.05 的角色初始化表位于 `game_file/mb/player/Init.txt`，2.01 对应表位于 `game_file/201/fol/mb/player/Init.txt`，均为 GB2312/GBK 编码、tab 分隔。1.05 `sub_405300` 加载 `player\init.txt` 到运行时表头 `0x00548790`；2.01 `sub_48D690` 同样把按角色 ID 查询到的记录指针保存到角色数据对象 `+0x308`。
 
 字段与新角色初始化关系如下。对初始化函数实际复制的字段，2.01 `sub_48D350` / `sub_48D690` 已静态确认沿用相同字段号和角色数据对象偏移；表中标明“按需读取”的字段仍保留 1.05 函数结论：
 
@@ -119,7 +142,7 @@ game_file/mb/assets
 | 8 | 等级/品级 |
 | 2 | 物品类型 |
 
-当前 `game_file/mb/assets/PropMdl.txt` 中，随机掉落相关基础类型记录统计：
+当前 `game_file/mb/PropMdl.txt` 中，随机掉落相关基础类型记录统计：
 
 | 类型 | 含义 | 记录数 |
 | ---: | --- | ---: |
