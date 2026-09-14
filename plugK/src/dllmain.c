@@ -1,4 +1,4 @@
-﻿// dllmain.c : 定义 DLL 应用程序的入口点。
+// dllmain.c : 定义 DLL 应用程序的入口点。
 #include "pch.h"
 #include "config.h"
 #include "item_stack.h"
@@ -98,6 +98,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             Mod_shop_inf_stock_init(ver);
             // 分辨率修改功能
             Mod_resolution_init(ver);
+            // 隐藏状态栏右侧按钮，保留左侧 660 像素
+            Mod_StatusBar_HideButtons_Init(ver);
             // 背包整理
             Mod_inv_auto_sort_init(ver);
             // [新增] 打开道具画面防抖动功能
