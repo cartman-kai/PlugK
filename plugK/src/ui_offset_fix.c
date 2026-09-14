@@ -10,8 +10,6 @@
 #include <MinHook.h>
 #include <windows.h>
 #include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
 
 #define STATUS_BAR_VISIBLE_WIDTH 660
 #define STATUS_BAR_EDGE_MAX_INSET 3
@@ -47,16 +45,16 @@ static int StatusBarRightAtY(int y, int barTop, int screenHeight)
 typedef struct StatusBarAddresses
 {
     DWORD draw, bitmapDraw, rleDraw, tooltip, interfaceAtPoint, childAtCursor;
-    DWORD screenWidth, screenHeight, barPointer, getInterface, templateWidth;
+    DWORD screenWidth, screenHeight, barPointer, templateWidth;
 } StatusBarAddresses;
 
 static const StatusBarAddresses k_status105 = {
     0x004C31E0, 0x00501150, 0x005033F0, 0x004C3690, 0x004B4800, 0x004B3380,
-    0x005485C0, 0x005485C4, 0x0055BBB0, 0x004B35D0, 0x004B365A
+    0x005485C0, 0x005485C4, 0x0055BBB0, 0x004B365A
 };
 static const StatusBarAddresses k_status201 = {
     0x004D77A0, 0x00518AA0, 0x0051AD90, 0x004D7C50, 0x004C7BD0, 0x004C6700,
-    0x00578B50, 0x00578B54, 0x0058D164, 0x004C6950, 0x004C69DA
+    0x00578B50, 0x00578B54, 0x0058D164, 0x004C69DA
 };
 static const StatusBarAddresses *g_statusAddresses;
 
@@ -85,35 +83,6 @@ static __declspec(thread) int g_statusDrawSurface;
 static __declspec(thread) int g_statusDrawHeight;
 static __declspec(thread) int g_statusDrawTop;
 static __declspec(thread) HRGN g_statusEdgeRegion;
-static __declspec(thread) int g_statusSpriteCalls;
-static __declspec(thread) int g_statusTextCalls;
-static char g_statusLogPath[MAX_PATH];
-static SRWLOCK g_statusLogLock = SRWLOCK_INIT;
-static LONG g_statusFrameLogs, g_statusHitLogs;
-static LONG g_statusEdgeLogs, g_statusEdgeActiveLogs;
-static int g_statusLastWidth, g_statusLastHeight;
-static POINT g_statusLastHit = {-1, -1};
-static void *g_statusLastHitObject;
-
-static void StatusBarLog(const char *format, ...)
-{
-    FILE *file;
-    va_list args;
-    SYSTEMTIME now;
-    if (!g_statusLogPath[0])
-        return;
-    AcquireSRWLockExclusive(&g_statusLogLock);
-    if (fopen_s(&file, g_statusLogPath, "a") == 0 && file)
-    {
-        GetLocalTime(&now);
-        fprintf(file, "%02u:%02u:%02u.%03u ", now.wHour, now.wMinute, now.wSecond, now.wMilliseconds);
-        va_start(args, format);
-        vfprintf(file, format, args);
-        va_end(args);
-        fclose(file);
-    }
-    ReleaseSRWLockExclusive(&g_statusLogLock);
-}
 
 typedef void *(__fastcall *fn_StatusSurfaceLock)(void *, void *, int);
 typedef void (__fastcall *fn_StatusSurfaceUnlock)(void *, void *);
@@ -149,15 +118,7 @@ static void BlendStatusBarEdge(void *surface)
     pitch = *(int *)((BYTE *)surface + 0x21);
     if (surfaceWidth <= STATUS_BAR_VISIBLE_WIDTH || surfaceHeight <= 0 ||
         bitsPerPixel != 16 || pitchScale <= 0 || pitch <= 0)
-    {
-        if (g_statusEdgeLogs < 4)
-        {
-            ++g_statusEdgeLogs;
-            StatusBarLog("edge blend skipped surface=%p size=%dx%d bpp=%d scale=%d pitch=%d\n",
-                surface, surfaceWidth, surfaceHeight, bitsPerPixel, pitchScale, pitch);
-        }
         return;
-    }
     scaledPitch = (LONGLONG)pitch * pitchScale;
     if (scaledPitch < (LONGLONG)surfaceWidth * 2 ||
         scaledPitch > (LONGLONG)surfaceHeight * surfaceWidth * 8)
@@ -168,20 +129,7 @@ static void BlendStatusBarEdge(void *surface)
         return;
     pixels = (BYTE *)((fn_StatusSurfaceLock)vtable[8])(surface, NULL, 0);
     if (!pixels)
-    {
-        if (g_statusEdgeLogs < 4)
-        {
-            ++g_statusEdgeLogs;
-            StatusBarLog("edge blend lock failed surface=%p\n", surface);
-        }
         return;
-    }
-    if (g_statusEdgeActiveLogs < 2)
-    {
-        ++g_statusEdgeActiveLogs;
-        StatusBarLog("edge blend active surface=%p size=%dx%d pitch=%d\n",
-            surface, surfaceWidth, surfaceHeight, pitch);
-    }
     top = max(0, g_statusDrawTop);
     bottom = min(g_statusDrawHeight, surfaceHeight);
     for (y = top; y < bottom; ++y)
@@ -207,52 +155,6 @@ static void BlendStatusBarEdge(void *surface)
     ((fn_StatusSurfaceUnlock)vtable[9])(surface, NULL);
 }
 
-static void InitializeStatusBarLog(void)
-{
-    HMODULE module;
-    char *slash;
-    FILE *file;
-    DWORD length;
-    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                           GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           (LPCSTR)&InitializeStatusBarLog, &module))
-        return;
-    length = GetModuleFileNameA(module, g_statusLogPath, MAX_PATH);
-    if (!length || length >= MAX_PATH ||
-        !(slash = strrchr(g_statusLogPath, '\\')))
-    {
-        g_statusLogPath[0] = 0;
-        return;
-    }
-    if ((size_t)(slash + 1 - g_statusLogPath) + sizeof("PlugK_StatusBar.log") > MAX_PATH)
-    {
-        g_statusLogPath[0] = 0;
-        return;
-    }
-    strcpy_s(slash + 1, MAX_PATH - (size_t)(slash + 1 - g_statusLogPath), "PlugK_StatusBar.log");
-    if (fopen_s(&file, g_statusLogPath, "w") == 0 && file)
-    {
-        fputs("PlugK status bar hide-buttons diagnostics (660px)\n", file);
-        fclose(file);
-    }
-}
-
-static void LogStatusBarControls(void)
-{
-    typedef void *(__stdcall *fn_GetInterface)(int);
-    fn_GetInterface getInterface = (fn_GetInterface)g_statusAddresses->getInterface;
-    const int ids[] = {9, 10, 11, 12, 13, 14, 15, 16, 38, 39};
-    size_t i;
-    for (i = 0; i < sizeof(ids) / sizeof(ids[0]); ++i)
-    {
-        BYTE *control = getInterface(ids[i]);
-        if (control)
-            StatusBarLog("control id=%d ptr=%p rect=(%d,%d,%d,%d)\n", ids[i], control,
-                *(int *)(control + 0x14), *(int *)(control + 0x18),
-                *(int *)(control + 0x1C), *(int *)(control + 0x20));
-    }
-}
-
 static BOOL StatusBarButtonsActive(void)
 {
     return *(int *)g_statusAddresses->screenWidth >= 800;
@@ -269,22 +171,7 @@ static int __fastcall Detour_StatusBarDraw(void *object, void *edx, int surface)
     int oldHeight = g_statusDrawHeight;
     int oldTop = g_statusDrawTop;
     HRGN oldRegion = g_statusEdgeRegion;
-    int oldSprites = g_statusSpriteCalls, oldTexts = g_statusTextCalls;
-    int screenWidth = *(int *)g_statusAddresses->screenWidth, screenHeight = *(int *)g_statusAddresses->screenHeight;
-    BOOL logFrame = g_statusFrameLogs < 8 || screenWidth != g_statusLastWidth ||
-                    screenHeight != g_statusLastHeight;
     int result;
-    if (logFrame)
-    {
-        ++g_statusFrameLogs;
-        g_statusLastWidth = screenWidth;
-        g_statusLastHeight = screenHeight;
-        StatusBarLog("draw begin #%ld screen=%dx%d active=%d bar=%p surface=%p rect=(%d,%d,%d,%d)\n",
-            g_statusFrameLogs, screenWidth, screenHeight, StatusBarButtonsActive(), object, (void *)surface,
-            *(int *)((BYTE *)object + 0x14), *(int *)((BYTE *)object + 0x18),
-            *(int *)((BYTE *)object + 0x1C), *(int *)((BYTE *)object + 0x20));
-    }
-    g_statusSpriteCalls = g_statusTextCalls = 0;
     g_statusEdgeRegion = NULL;
     if (StatusBarButtonsActive() && IsMainStatusBar(object))
     {
@@ -295,14 +182,6 @@ static int __fastcall Detour_StatusBarDraw(void *object, void *edx, int surface)
     result = fpStatusBarDraw(object, edx, surface);
     if (g_statusDrawSurface)
         BlendStatusBarEdge((void *)(ULONG_PTR)(DWORD)surface);
-    if (logFrame)
-    {
-        StatusBarLog("draw end #%ld result=%d sprite_calls=%d text_calls=%d\n",
-                     g_statusFrameLogs, result, g_statusSpriteCalls, g_statusTextCalls);
-        LogStatusBarControls();
-    }
-    g_statusSpriteCalls = oldSprites;
-    g_statusTextCalls = oldTexts;
     g_statusDrawSurface = oldSurface;
     g_statusDrawHeight = oldHeight;
     g_statusDrawTop = oldTop;
@@ -329,7 +208,6 @@ static int DrawStatusSprite(fn_StatusSpriteDraw original, void *object, void *ed
     int clipped[5];
     if (g_statusDrawSurface && surface == g_statusDrawSurface)
     {
-        ++g_statusSpriteCalls;
         LONGLONG left = max(0, x), top = max(0, y);
         LONGLONG right = min(STATUS_BAR_VISIBLE_WIDTH, (LONGLONG)x + width);
         LONGLONG bottom = min(g_statusDrawHeight, (LONGLONG)y + height);
@@ -453,7 +331,6 @@ static BOOL WINAPI Detour_StatusTextOut(HDC dc, int x, int y, LPCSTR text, int c
     BOOL result;
     if (!g_statusDrawSurface)
         return fpStatusTextOut(dc, x, y, text, count);
-    ++g_statusTextCalls;
     saved = SaveDC(dc);
     if (!saved)
         return FALSE;
@@ -473,7 +350,6 @@ static int WINAPI Detour_StatusDrawText(HDC dc, LPCSTR text, int count, LPRECT r
     int result;
     if (!g_statusDrawSurface || (format & DT_CALCRECT))
         return fpStatusDrawText(dc, text, count, rect, format);
-    ++g_statusTextCalls;
     saved = SaveDC(dc);
     if (!saved)
         return 0;
@@ -503,17 +379,6 @@ static void *__fastcall Detour_InterfaceAtPoint(void *object, void *edx, const P
         : STATUS_BAR_VISIBLE_WIDTH);
     result = fpInterfaceAtPoint(object, edx, point);
     *(int *)(bar + 0x1C) = oldWidth;
-    if (point && point->x >= StatusBarRightAtY(point->y, *(int *)(bar + 0x18), screenHeight) &&
-        point->y >= *(int *)(bar + 0x18) && g_statusHitLogs < 20 &&
-        (point->x != g_statusLastHit.x || point->y != g_statusLastHit.y ||
-         result != g_statusLastHitObject))
-    {
-        g_statusLastHit = *point;
-        g_statusLastHitObject = result;
-        ++g_statusHitLogs;
-        StatusBarLog("hit #%ld cursor=(%ld,%ld) original_width=%d selected=%p bar=%p\n",
-            g_statusHitLogs, point->x, point->y, oldWidth, result, bar);
-    }
     return result;
 }
 
@@ -569,15 +434,8 @@ void Mod_StatusBar_HideButtons_Init(int game_version)
     HMODULE gdi, user;
     if (!g_pk_config.hide_status_bar_buttons)
         return;
-    InitializeStatusBarLog();
-    StatusBarLog("init version=%d enabled=%d res_enabled=%d configured=%dx%d pid=%lu\n",
-        game_version, g_pk_config.hide_status_bar_buttons, g_pk_config.res_enabled,
-        g_pk_config.res_width, g_pk_config.res_height, GetCurrentProcessId());
     if (game_version != 105 && game_version != 201)
-    {
-        StatusBarLog("unsupported version; no patches applied\n");
         return;
-    }
     g_statusAddresses = game_version == 105 ? &k_status105 : &k_status201;
     hooks[0].target = (LPVOID)g_statusAddresses->draw;
     hooks[1].target = (LPVOID)g_statusAddresses->bitmapDraw;
@@ -585,17 +443,10 @@ void Mod_StatusBar_HideButtons_Init(int game_version)
     hooks[3].target = (LPVOID)g_statusAddresses->tooltip;
     hooks[4].target = (LPVOID)g_statusAddresses->interfaceAtPoint;
     hooks[5].target = (LPVOID)g_statusAddresses->childAtCursor;
-    StatusBarLog("addresses width=%p height=%p bar=%p get_interface=%p template=%p\n",
-        (void *)g_statusAddresses->screenWidth, (void *)g_statusAddresses->screenHeight,
-        (void *)g_statusAddresses->barPointer, (void *)g_statusAddresses->getInterface,
-        (void *)g_statusAddresses->templateWidth);
     gdi = GetModuleHandleA("gdi32.dll");
     user = GetModuleHandleA("user32.dll");
     if (!gdi || !user)
-    {
-        StatusBarLog("missing GDI/User32 module; no patches applied\n");
         return;
-    }
     hooks[6].target = (LPVOID)GetProcAddress(gdi, "TextOutA");
     hooks[7].target = (LPVOID)GetProcAddress(user, "DrawTextA");
     for (; created < hookCount; ++created)
@@ -603,8 +454,6 @@ void Mod_StatusBar_HideButtons_Init(int game_version)
         status = hooks[created].target
             ? MH_CreateHook(hooks[created].target, hooks[created].detour, hooks[created].original)
             : MH_ERROR_NOT_EXECUTABLE;
-        StatusBarLog("create hook index=%u target=%p status=%d trampoline=%p\n",
-            (unsigned)created, hooks[created].target, status, *hooks[created].original);
         if (status != MH_OK)
             goto fail;
     }
@@ -613,27 +462,18 @@ void Mod_StatusBar_HideButtons_Init(int game_version)
     {
         oldTemplateWidth = *(int *)g_statusAddresses->templateWidth;
         if (!PatchStatusBarTemplateWidth(g_pk_config.res_width))
-        {
-            StatusBarLog("template patch failed error=%lu\n", GetLastError());
             goto fail;
-        }
         patched = TRUE;
-        StatusBarLog("template width patched %d -> %d\n", oldTemplateWidth, g_pk_config.res_width);
     }
     for (; enabled < hookCount; ++enabled)
     {
         status = MH_EnableHook(hooks[enabled].target);
-        StatusBarLog("enable hook index=%u status=%d\n", (unsigned)enabled, status);
         if (status != MH_OK)
             goto fail;
     }
-    OutputDebugStringA("PlugK: status bar buttons hidden (660px).\n");
-    StatusBarLog("ready; edge=rock-v2 arc max-inset=3 height=screen feather=6px rgb565; draw logs limited to first 8 frames and resolution changes; hit logs limited to 20\n");
     return;
 
 fail:
-    StatusBarLog("initialization failed; rolling back created=%u enabled=%u\n",
-                 (unsigned)created, (unsigned)enabled);
     while (enabled)
         MH_DisableHook(hooks[--enabled].target);
     while (created)
@@ -643,8 +483,7 @@ fail:
         *hooks[created].original = NULL;
     }
     if (patched)
-        StatusBarLog("template rollback success=%d\n", PatchStatusBarTemplateWidth(oldTemplateWidth));
-    OutputDebugStringA("PlugK: status bar hide-buttons initialization failed; rolled back.\n");
+        PatchStatusBarTemplateWidth(oldTemplateWidth);
 }
 
 void Mod_UI_offset_fix_init(int game_version)
