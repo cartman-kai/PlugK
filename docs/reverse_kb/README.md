@@ -11,8 +11,10 @@
 - [文字渲染与内置颜色](systems/text_rendering.md)：通用文字输出、默认颜色字段、控制码与 2.01 字体生命周期。
 - [敌人 HUD 与血条显示](systems/enemy_hud.md)：敌人顶部信息、底部血条实现、资源链和 Hook 调用约定。
 - [输入与快捷键系统](systems/input.md)：键盘状态刷新、数字键快捷栏/药品槽位与输入消费路径。
+- [1.05 传送地图与跨幕限制](systems/trans_map_105.md)：幕标签、地点点击判定、`Ctrl+Tab` 传言与动态验证边界。
 - [开场动画](systems/intro_movie.md)：DHP 开场视频、DirectShow 播放链路与跳过 Hook 边界。
 - [1.05 DirectDraw / Direct3D7 窗口化调研](systems/ddraw_windowed_105.md)：原版显示链、实验结果与放弃轻量 Hook 方案的原因。
+- [主状态栏布局与按钮隐藏](systems/status_bar_center.md)：1.05 / 2.01 保留左侧 660 像素、绘制裁剪与命中边界，以及两版居中历史调研。
 - [1.05 D3D7 CPU facade](systems/d3d7_facade_105.md)：plugK 内置 CPU D3D7 COM facade、1.05 Hook 边界与 2.01 适配规则。
 - [1.05 帧率限制调研](systems/fps_limit_105.md)：1.05 主循环、每帧函数、模拟步长与可移植的限速 Hook 点。
 - [难度系统](systems/difficulty.md)：难度全局变量、1.05 静态交叉引用与自定义难度设计边界。
