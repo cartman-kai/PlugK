@@ -27,6 +27,7 @@ typedef void *(__fastcall *tCreateTextNode)(void *pThis, void *_edx, const char 
 static tCreateTextNode fpCreateTextNode = NULL;
 
 static PK_DrawTextFn fpDrawText = NULL;
+static PK_DrawTextFn g_directDrawText = NULL;
 
 static int g_item_name_game_version = 0;
 static char g_pending_item_color = 0;
@@ -228,6 +229,16 @@ static int __fastcall Detour_DrawText(void *pThis, void *_edx, int surface, int 
     return result;
 }
 
+int Item_DrawText(void *pThis, void *_edx, int surface, int x, int y, const char *text, int mode)
+{
+    PK_DrawTextFn draw_text = fpDrawText ? fpDrawText : g_directDrawText;
+
+    if (!draw_text)
+        return 0;
+
+    return draw_text(pThis, _edx, surface, x, y, text, mode);
+}
+
 /**
  * @brief 拦截后的物品更新函数
  * * @param pThis 物品对象指针 (ECX)
@@ -316,6 +327,8 @@ void Mod_Show_Item_Name_Init(int game_version)
     {
         return;
     }
+
+    g_directDrawText = (PK_DrawTextFn)targetAddr_DrawText;
 
     PatchItemNameTextStyle(game_version);
 
