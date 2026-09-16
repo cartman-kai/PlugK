@@ -332,7 +332,8 @@ static void draw_enemy_bottom_bar(void *draw_context, int surface, void *enemy_o
     int percent = 100;
     int segments = 1;
     int filled_width;
-    int empty_width;
+    int filled_sprite_width;
+    int empty_sprite_width;
     int bar_width;
     int narrow_width;
     int filled_height;
@@ -354,8 +355,9 @@ static void draw_enemy_bottom_bar(void *draw_context, int surface, void *enemy_o
     if (percent > 100)
         percent = 100;
 
-    if (segments < 1)
-        segments = 1;
+    // 原版允许 segments=0（空血或第一段血量），对应资源槽 1/0。
+    if (segments < 0)
+        segments = 0;
     if (segments > 5)
         segments = 5;
 
@@ -365,12 +367,12 @@ static void draw_enemy_bottom_bar(void *draw_context, int surface, void *enemy_o
     if (!filled_sprite || !empty_sprite)
         return;
 
-    filled_width = get_enemy_sprite_dimension(filled_sprite, 0x0C, 0);
-    empty_width = get_enemy_sprite_dimension(empty_sprite, 0x0C, 0);
+    filled_sprite_width = get_enemy_sprite_dimension(filled_sprite, 0x0C, 0);
+    empty_sprite_width = get_enemy_sprite_dimension(empty_sprite, 0x0C, 0);
     filled_height = get_enemy_sprite_dimension(filled_sprite, 0x10, 0);
     empty_height = get_enemy_sprite_dimension(empty_sprite, 0x10, 0);
 
-    bar_width = empty_width > 0 ? empty_width : filled_width;
+    bar_width = empty_sprite_width > 0 ? empty_sprite_width : filled_sprite_width;
     narrow_width = bar_width / 2;
     if (narrow_width < 1)
         narrow_width = 1;

@@ -7,6 +7,7 @@
 #include <string>
 #include <tchar.h>
 #include <windows.h>
+#include <wchar.h>
 
 
 // Third-party (ImGui)
@@ -28,12 +29,158 @@
 static LPDIRECT3D9 g_pD3D = NULL;
 static LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
 static D3DPRESENT_PARAMETERS g_d3dpp = {};
+static HANDLE g_hInstanceMutex = NULL;
+static const UINT kActivateLauncherMessage = WM_APP + 1;
 
 // --- Declarations ---
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
 void ResetDevice();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+static std::wstring GetLauncherDirectoryW() {
+  wchar_t modulePath[MAX_PATH] = {};
+  DWORD length = GetModuleFileNameW(NULL, modulePath, _countof(modulePath));
+  if (length == 0 || length >= _countof(modulePath))
+    return L"";
+
+  std::wstring path(modulePath, length);
+  size_t slash = path.find_last_of(L"\\/");
+  if (slash == std::wstring::npos)
+    return L"";
+
+  std::wstring directory = path.substr(0, slash);
+  if (directory.size() == 2 && directory[1] == L':')
+    directory += L"\\";
+
+  wchar_t fullPath[MAX_PATH] = {};
+  DWORD fullLength = GetFullPathNameW(directory.c_str(), _countof(fullPath),
+                                      fullPath, NULL);
+  if (fullLength > 0 && fullLength < _countof(fullPath))
+    directory.assign(fullPath, fullLength);
+
+  if (!directory.empty())
+    CharLowerBuffW(&directory[0], (DWORD)directory.size());
+  return directory;
+}
+
+static unsigned long long HashDirectory(const std::wstring &directory) {
+  unsigned long long hash = 1469598103934665603ULL;
+  for (size_t i = 0; i < directory.size(); ++i) {
+    hash ^= (unsigned long long)(unsigned short)directory[i];
+    hash *= 1099511628211ULL;
+  }
+  return hash;
+}
+
+static std::wstring BuildInstanceName(unsigned long long directoryHash) {
+  wchar_t name[64] = {};
+  swprintf_s(name, _countof(name), L"Local\\PlugKLauncher_%016llX",
+             directoryHash);
+  return std::wstring(name);
+}
+
+static std::wstring BuildWindowClassName(unsigned long long directoryHash) {
+  wchar_t name[64] = {};
+  swprintf_s(name, _countof(name), L"PlugKLauncher_%016llX", directoryHash);
+  return std::wstring(name);
+}
+
+static void BringLauncherToFront(HWND hwnd) {
+  if (!IsWindow(hwnd))
+    return;
+
+  if (IsIconic(hwnd))
+    ShowWindow(hwnd, SW_RESTORE);
+  else
+    ShowWindow(hwnd, SW_SHOW);
+  BringWindowToTop(hwnd);
+  SetForegroundWindow(hwnd);
+}
+
+// Returns 1 when this process owns the instance, 0 when another instance is
+// already running, and -1 when the mutex could not be created.
+static int AcquireSingleInstance(const std::wstring &mutexName,
+                                 const std::wstring &windowClassName) {
+  HANDLE mutex = CreateMutexW(NULL, TRUE, mutexName.c_str());
+  if (!mutex) {
+    MessageBoxW(NULL, L"无法创建启动器单例锁。", L"PlugK", MB_ICONERROR);
+    return -1;
+  }
+
+  if (GetLastError() == ERROR_ALREADY_EXISTS) {
+    HWND existing = NULL;
+    for (int i = 0; i < 20 && !existing; ++i) {
+      existing = FindWindowW(windowClassName.c_str(), NULL);
+      if (!existing)
+        Sleep(50);
+    }
+
+    if (existing) {
+      BringLauncherToFront(existing);
+      PostMessageW(existing, kActivateLauncherMessage, 0, 0);
+    }
+    CloseHandle(mutex);
+    return 0;
+  }
+
+  g_hInstanceMutex = mutex;
+  return 1;
+}
+
+static void ReleaseSingleInstance() {
+  if (g_hInstanceMutex) {
+    CloseHandle(g_hInstanceMutex);
+    g_hInstanceMutex = NULL;
+  }
+}
+
+static std::wstring BuildWindowTitle(int gameVersion) {
+  const wchar_t *versionText = L"未知";
+  if (gameVersion == 105)
+    versionText = L"1.05";
+  else if (gameVersion == 201)
+    versionText = L"2.01";
+
+  wchar_t title[128] = {};
+  swprintf_s(title, _countof(title), L"PlugK 游戏启动器 - 游戏版本 %s",
+             versionText);
+  return std::wstring(title);
+}
+
+static bool LoadChineseFont(ImGuiIO &io, float dpiScale) {
+  char windowsDirectory[MAX_PATH] = {};
+  UINT length = GetWindowsDirectoryA(windowsDirectory,
+                                     _countof(windowsDirectory));
+  if (length == 0 || length >= _countof(windowsDirectory))
+    return false;
+
+  std::string fontDirectory(windowsDirectory, length);
+  if (!fontDirectory.empty() && fontDirectory.back() != '\\')
+    fontDirectory += '\\';
+  fontDirectory += "Fonts\\";
+
+  const char *fontNames[] = {
+      "msyh.ttc",   // Microsoft YaHei
+      "simhei.ttf", // SimHei
+      "simsun.ttc"  // SimSun
+  };
+
+  for (size_t i = 0; i < _countof(fontNames); ++i) {
+    std::string fontPath = fontDirectory + fontNames[i];
+    DWORD attributes = GetFileAttributesA(fontPath.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES ||
+        (attributes & FILE_ATTRIBUTE_DIRECTORY))
+      continue;
+
+    if (io.Fonts->AddFontFromFileTTF(
+            fontPath.c_str(), 16.0f * dpiScale, NULL,
+            io.Fonts->GetGlyphRangesChineseFull()) != NULL)
+      return true;
+  }
+
+  return false;
+}
 
 int main(int argc, char **argv) {
   // Check command line args
@@ -49,6 +196,22 @@ int main(int argc, char **argv) {
 
   SetProcessDPIAware();
   float dpiScale = Utils::GetDPIScale();
+
+  std::wstring launcherDirectory = GetLauncherDirectoryW();
+  if (launcherDirectory.empty()) {
+    MessageBoxW(NULL, L"无法确定启动器所在目录。", L"PlugK", MB_ICONERROR);
+    return 1;
+  }
+
+  unsigned long long directoryHash = HashDirectory(launcherDirectory);
+  std::wstring mutexName = BuildInstanceName(directoryHash);
+  std::wstring windowClassName = BuildWindowClassName(directoryHash);
+  int instanceStatus =
+      AcquireSingleInstance(mutexName, windowClassName);
+  if (instanceStatus != 1)
+    return instanceStatus < 0 ? 1 : 0;
+
+  int gameVersion = ModLoader::GetGameVersion();
 
   // Setup paths
   char exePath[MAX_PATH];
@@ -68,21 +231,38 @@ int main(int argc, char **argv) {
   // Register class
   HINSTANCE hInstance = GetModuleHandle(NULL);
   HICON hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
-  WNDCLASSEX wc = {sizeof(WNDCLASSEX),  CS_CLASSDC, WndProc, 0L,   0L,
-                   hInstance,           hIcon,      NULL,    NULL, NULL,
-                   _T("PlugKLauncher"), hIcon};
-  RegisterClassEx(&wc);
+  WNDCLASSEXW wc = {};
+  wc.cbSize = sizeof(wc);
+  wc.style = CS_CLASSDC;
+  wc.lpfnWndProc = WndProc;
+  wc.hInstance = hInstance;
+  wc.hIcon = hIcon;
+  wc.lpszClassName = windowClassName.c_str();
+  wc.hIconSm = hIcon;
+  if (!RegisterClassExW(&wc)) {
+    ReleaseSingleInstance();
+    return 1;
+  }
 
   int winW = (int)(480 * dpiScale); // Home view size
   int winH = (int)(380 * dpiScale);
 
-  HWND hwnd = CreateWindow(wc.lpszClassName, _T("PlugK 游戏启动器"),
-                           WS_OVERLAPPEDWINDOW, 100, 100, winW, winH, NULL,
-                           NULL, wc.hInstance, NULL);
+  std::wstring windowTitle = BuildWindowTitle(gameVersion);
+  HWND hwnd = CreateWindowW(wc.lpszClassName, windowTitle.c_str(),
+                            WS_OVERLAPPEDWINDOW, 100, 100, winW, winH, NULL,
+                            NULL, wc.hInstance, NULL);
+
+  if (!hwnd) {
+    UnregisterClassW(wc.lpszClassName, wc.hInstance);
+    ReleaseSingleInstance();
+    return 1;
+  }
 
   if (!CreateDeviceD3D(hwnd)) {
     CleanupDeviceD3D();
-    UnregisterClass(wc.lpszClassName, wc.hInstance);
+    DestroyWindow(hwnd);
+    UnregisterClassW(wc.lpszClassName, wc.hInstance);
+    ReleaseSingleInstance();
     return 1;
   }
 
@@ -94,15 +274,10 @@ int main(int argc, char **argv) {
   ImGuiIO &io = ImGui::GetIO();
   io.IniFilename = NULL;
 
-  UIManager::Initialize(hwnd, dpiScale);
+  UIManager::Initialize(hwnd, dpiScale, gameVersion);
 
   // Font loading
-  char fontPath[MAX_PATH];
-  GetWindowsDirectoryA(fontPath, MAX_PATH);
-  strcat(fontPath, "\\Fonts\\msyh.ttc");
-  if (GetFileAttributesA(fontPath) != INVALID_FILE_ATTRIBUTES)
-    io.Fonts->AddFontFromFileTTF(fontPath, 16.0f * dpiScale, NULL,
-                                 io.Fonts->GetGlyphRangesChineseFull());
+  LoadChineseFont(io, dpiScale);
 
   ImGui_ImplWin32_Init(hwnd);
   ImGui_ImplDX9_Init(g_pd3dDevice);
@@ -166,7 +341,8 @@ int main(int argc, char **argv) {
   ImGui::DestroyContext();
   CleanupDeviceD3D();
   DestroyWindow(hwnd);
-  UnregisterClass(wc.lpszClassName, wc.hInstance);
+  UnregisterClassW(wc.lpszClassName, wc.hInstance);
+  ReleaseSingleInstance();
 
   return 0;
 }
@@ -214,6 +390,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
     return true;
   switch (msg) {
+  case kActivateLauncherMessage:
+    BringLauncherToFront(hWnd);
+    return 0;
   case WM_SIZE:
     if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED) {
       g_d3dpp.BackBufferWidth = LOWORD(lParam);
