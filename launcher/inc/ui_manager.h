@@ -3,7 +3,7 @@
 #include "imgui.h"
 
 namespace UIManager {
-    void Initialize(HWND hwnd, float dpiScale);
+    void Initialize(HWND hwnd, float dpiScale, int gameVersion);
     void Render();
     void Cleanup();
 

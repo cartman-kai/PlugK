@@ -28,6 +28,16 @@ namespace UIManager
     static DWORD g_saveTime = 0;
     static float g_dpiScale = 1.0f;
     static HWND g_hwnd = NULL;
+    static int g_gameVersion = 0;
+
+    static const char *GetGameVersionLabel()
+    {
+        if (g_gameVersion == 105)
+            return "1.05";
+        if (g_gameVersion == 201)
+            return "2.01";
+        return "未知";
+    }
 
     void SetupStyles(float dpiScale)
     {
@@ -580,16 +590,21 @@ namespace UIManager
         }
 
         // Footer version info
+        ImGui::SetCursorPos(ImVec2(14 * g_dpiScale,
+                                   ImGui::GetWindowHeight() - 20 * g_dpiScale));
+        ImGui::TextDisabled("游戏版本 %s", GetGameVersionLabel());
+
         ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - 75 * g_dpiScale, ImGui::GetWindowHeight() - 20 * g_dpiScale));
         ImGui::TextDisabled("v%s", VER_FILE_VERSION_STR);
 
         ImGui::End();
     }
 
-    void Initialize(HWND hwnd, float dpiScale)
+    void Initialize(HWND hwnd, float dpiScale, int gameVersion)
     {
         g_hwnd = hwnd;
         g_dpiScale = dpiScale;
+        g_gameVersion = gameVersion;
         g_currentView = Home;
         g_lastView = Home;
         SetupStyles(dpiScale);
