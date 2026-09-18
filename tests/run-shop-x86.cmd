@@ -1,6 +1,17 @@
 @echo off
 setlocal
-call "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat" -arch=x86 -host_arch=x64
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if not exist "%VSWHERE%" (
+    echo [shop-tests] vswhere.exe not found. Install Visual Studio with the x86 C++ toolset and retry.
+    exit /b 1
+)
+set "VSROOT="
+for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSROOT=%%i"
+if not defined VSROOT (
+    echo [shop-tests] No Visual Studio installation with the x86 C++ toolset found.
+    exit /b 1
+)
+call "%VSROOT%\Common7\Tools\VsDevCmd.bat" -arch=x86 -host_arch=x64
 if errorlevel 1 exit /b %errorlevel%
 pushd "%~dp0.."
 if not exist "build\shop_tests\Win32" mkdir "build\shop_tests\Win32"

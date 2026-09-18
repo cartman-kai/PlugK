@@ -434,6 +434,7 @@ temp/
 # Local notes
 docs/game_common.md
 docs/release_process.md
+docs/release_checklist.md
 docs/release_note/
 
 # Build residuals
@@ -441,11 +442,14 @@ RCa*
 *.aps
 *.vcxproj.user
 release_notes.md
+release_zip/
+plugK_*.zip
 
 # agent 
 
 .agent/
 .agents
+.claude/
 .vscode/
 .codex
 .mcp.json
