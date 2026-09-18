@@ -4,7 +4,6 @@
 #include <tlhelp32.h>
 #include <shellapi.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -27,25 +26,6 @@ namespace ModLoader {
 
     static bool FileExists(const std::string& path) {
         return PathFileExistsA(path.c_str()) == TRUE;
-    }
-
-    static void WriteLog(const char* fmt, ...) {
-        std::string path = GetBasePath() + "\\PlugKLauncher.log";
-        FILE* fp = NULL;
-        if (fopen_s(&fp, path.c_str(), "a") != 0 || !fp)
-            return;
-
-        SYSTEMTIME st = {};
-        GetLocalTime(&st);
-        fprintf(fp, "[%04u-%02u-%02u %02u:%02u:%02u] ",
-                st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
-
-        va_list args;
-        va_start(args, fmt);
-        vfprintf(fp, fmt, args);
-        va_end(args);
-        fputc('\n', fp);
-        fclose(fp);
     }
 
     static bool ReadFileToBuffer(const std::string& path, std::vector<char>& out) {
@@ -208,8 +188,6 @@ namespace ModLoader {
         std::string hookPath = base + "\\PlugKLauncherHook.dll";
         std::vector<DWORD> attempted;
 
-        WriteLog("Steam launcher monitor started.");
-
         DWORD start = GetTickCount();
         while (GetTickCount() - start < 30 * 60 * 1000) {
             DWORD elapsed = GetTickCount() - start;
@@ -238,16 +216,11 @@ namespace ModLoader {
 
                     if (ProcessHasModule(process.th32ProcessID, L"PlugKLauncherHook.dll")) {
                         attempted.push_back(process.th32ProcessID);
-                        WriteLog("launcher.exe pid=%lu already has PlugKLauncherHook.dll.", process.th32ProcessID);
                         continue;
                     }
 
-                    WriteLog("injecting PlugKLauncherHook.dll into launcher.exe pid=%lu.", process.th32ProcessID);
                     if (InjectDLLToProcess(process.th32ProcessID, hookPath.c_str())) {
-                        WriteLog("inject succeeded: pid=%lu.", process.th32ProcessID);
                         attempted.push_back(process.th32ProcessID);
-                    } else {
-                        WriteLog("inject failed: pid=%lu last_error=%lu.", process.th32ProcessID, GetLastError());
                     }
                 } while (Process32Next(snapshot, &process));
             }
@@ -255,7 +228,6 @@ namespace ModLoader {
             Sleep(elapsed < 30 * 1000 ? 50 : 500);
         }
 
-        WriteLog("Steam launcher monitor stopped.");
         return 0;
     }
 
@@ -380,9 +352,7 @@ namespace ModLoader {
         std::string launcherPath = base + "\\launcher.exe";
         std::string hookDllPath = GetLauncherHookPath();
 
-        WriteLog("LaunchSteamWithMod requested: version=%d appid=%lu.", config.version, config.appId);
         if (!FileExists(hookDllPath)) {
-            WriteLog("missing PlugKLauncherHook.dll.");
             MessageBoxA(NULL, "启动失败: 找不到 PlugKLauncherHook.dll", "错误", MB_ICONERROR);
             return false;
         }
@@ -393,14 +363,11 @@ namespace ModLoader {
         sprintf_s(url, "steam://rungameid/%lu", config.appId);
         HINSTANCE shellResult = ShellExecuteA(NULL, "open", url, NULL, base.c_str(), SW_SHOWNORMAL);
         if ((INT_PTR)shellResult > 32) {
-            WriteLog("Steam protocol launch requested: %s.", url);
             return true;
         }
 
-        WriteLog("Steam protocol launch failed: result=%Id. Falling back to direct launcher start.", (INT_PTR)shellResult);
         PROCESS_INFORMATION pi = { 0 };
         if (!LaunchProcess(launcherPath, base, CREATE_SUSPENDED, &pi)) {
-            WriteLog("CreateProcess launcher.exe failed: %lu.", GetLastError());
             char buf[256];
             sprintf_s(buf, "启动失败 (创建 Steam launcher): %d", GetLastError());
             MessageBoxA(NULL, buf, "错误", MB_ICONERROR);
@@ -408,7 +375,6 @@ namespace ModLoader {
         }
 
         if (!InjectDLL(&pi, hookDllPath.c_str())) {
-            WriteLog("initial launcher hook inject failed: pid=%lu last_error=%lu.", pi.dwProcessId, GetLastError());
             MessageBoxA(NULL, "启动失败: Steam launcher hook 注入失败。", "错误", MB_ICONERROR);
             TerminateProcess(pi.hProcess, 0);
             CloseHandle(pi.hThread);
@@ -416,7 +382,6 @@ namespace ModLoader {
             return false;
         }
 
-        WriteLog("initial launcher hook inject succeeded: pid=%lu.", pi.dwProcessId);
         ResumeThread(pi.hThread);
         CloseHandle(pi.hThread);
         CloseHandle(pi.hProcess);

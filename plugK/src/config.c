@@ -32,6 +32,50 @@ static void CheckAndWriteDefault(const char *iniPath, const char *section, const
     }
 }
 
+static BOOL HasConfigKey(const char *iniPath, const char *section, const char *key)
+{
+    char buf[32];
+    GetPrivateProfileStringA(section, key, "MISSING", buf, sizeof(buf), iniPath);
+    return strcmp(buf, "MISSING") != 0;
+}
+
+static void WriteConfigInt(const char *iniPath, const char *section, const char *key, int value)
+{
+    char valueText[16];
+    snprintf(valueText, sizeof(valueText), "%d", value);
+    WritePrivateProfileStringA(section, key, valueText, iniPath);
+}
+
+static void MigrateLegacyShopSettings(const char *iniPath)
+{
+    const char *section = "Item&Shop";
+    BOOL hasLegacyQuantity = HasConfigKey(iniPath, section, "OptimizeItem");
+    BOOL hasLegacyStock = HasConfigKey(iniPath, section, "InfStock");
+    BOOL hasLegacySort = HasConfigKey(iniPath, section, "EnableSort");
+
+    if (!HasConfigKey(iniPath, section, "EnableConsumableStack") && hasLegacyQuantity)
+    {
+        WriteConfigInt(iniPath, section, "EnableConsumableStack",
+                       GetPrivateProfileIntA(section, "OptimizeItem", 1, iniPath) != 0);
+    }
+
+    if (!HasConfigKey(iniPath, section, "OptimizeShop") &&
+        (hasLegacyQuantity || hasLegacyStock || hasLegacySort))
+    {
+        int enabled = GetPrivateProfileIntA(section, "OptimizeItem", 0, iniPath) != 0 ||
+                      GetPrivateProfileIntA(section, "InfStock", 0, iniPath) != 0 ||
+                      GetPrivateProfileIntA(section, "EnableSort", 0, iniPath) != 0;
+        WriteConfigInt(iniPath, section, "OptimizeShop", enabled);
+    }
+
+    if (hasLegacyQuantity)
+        WritePrivateProfileStringA(section, "OptimizeItem", NULL, iniPath);
+    if (hasLegacyStock)
+        WritePrivateProfileStringA(section, "InfStock", NULL, iniPath);
+    if (hasLegacySort)
+        WritePrivateProfileStringA(section, "EnableSort", NULL, iniPath);
+}
+
 void pk_config_load(const char *optional_path)
 {
     char ini_path[MAX_PATH];
@@ -60,6 +104,8 @@ void pk_config_load(const char *optional_path)
     }
     else
     {
+        MigrateLegacyShopSettings(ini_path);
+
 // 2. 如果文件存在，执行“增量补全” (Fix missing keys)
 #define X(type, name, sec, key, val, desc) \
     CheckAndWriteDefault(ini_path, sec, key, val, desc);

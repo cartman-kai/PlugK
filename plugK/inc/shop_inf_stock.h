@@ -3,9 +3,8 @@
 
 #include <windows.h>
 
-// C函数签名不变，但现在由汇编调用，且不需要 __stdcall
-// ItemPtrPtr: [ESI+EDI*4+4] 的地址
-int ShouldKeepItemPreCall(DWORD ItemPtrPtr);
+// 由汇编传入商店地址和格子索引。
+int ShouldKeepItemPreCall(DWORD shopAddress, DWORD slotIndex);
 
 void Mod_shop_inf_stock_init(int game_version);
 
