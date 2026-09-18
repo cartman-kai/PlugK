@@ -10,35 +10,22 @@
 #include <stdio.h>
 
 // ---------------------------------------------------------
-// 判定逻辑函数 (C语言编写，接收 Item Object Pointer的地址)
+// 固定或随机来源均按 ID 判断，只有 4-15 保持库存。
 // ---------------------------------------------------------
-// 默认 __cdecl 调用约定，返回结果在 EAX
-int ShouldKeepItemPreCall(DWORD ItemPtrPtr)
+int ShouldKeepItemPreCall(DWORD shopAddress, DWORD slotIndex)
 {
-    if (!g_pk_config.shop_inf_stock)
-    {
-        return 0; // 配置为 0，返回 0 (执行销毁)
-    }
+    DWORD itemPtr;
 
-    // 1. 读取物品指针
-    DWORD item_obj_ptr = *(DWORD *)ItemPtrPtr;
-    if (item_obj_ptr == 0)
-    {
+    if (!g_pk_config.shop_optimize || shopAddress == 0 || slotIndex >= 50)
         return 0;
-    }
+    if (IsBadReadPtr((void *)(shopAddress + slotIndex * 4 + 4), sizeof(DWORD)))
+        return 0;
 
-    // 2. 读取 ID
-    DWORD item_id = *(DWORD *)(item_obj_ptr + 0x18);
-
-    // 3. 判定逻辑
-    if ((item_id >= 4 && item_id <= 15) ||
-        (item_id >= 60 && item_id <= 77) ||
-        (item_id >= 22 && item_id <= 23))
-    {
-        return 1; // 保留
-    }
-
-    return 0; // 销毁
+    itemPtr = *(DWORD *)(shopAddress + slotIndex * 4 + 4);
+    if (itemPtr == 0 || IsBadReadPtr((void *)itemPtr, 0x20))
+        return 0;
+    DWORD itemId = *(DWORD *)(itemPtr + 0x18);
+    return itemId >= 4 && itemId <= 15;
 }
 
 // ---------------------------------------------------------
@@ -67,16 +54,14 @@ __declspec(naked) void ShopHook_Trampoline()
         push edx
         push ecx
 
-                            // 准备参数: [ESI + EDI*4 + 4] 的地址
-        lea eax, [esi + edi * 4 + 4]
-        push eax // 参数入栈
+                            // 参数: 商店地址、格子索引
+        push edi
+        push esi
 
             // 调用 C 函数 (返回值在 EAX)
         call ShouldKeepItemPreCall
 
-                // [关键修正] 平栈：清除参数 (push eax 占用的 4 字节)
-                // 使用 add esp, 4 而不是 pop eax，避免覆盖 EAX 中的返回值！
-        add esp, 4
+        add esp, 8
 
         // 恢复 volatile 寄存器 (注意顺序：后进先出)
         pop ecx

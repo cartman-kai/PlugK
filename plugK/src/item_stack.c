@@ -8,7 +8,7 @@
 // --------------------------------------------------------
 // 全局状态管理
 // --------------------------------------------------------
-static BOOL g_bIsItemStackActive = FALSE; // 默认为关闭
+static BOOL g_bIsGemStackActive = FALSE;
 static int g_CurrentVersion = 0;
 
 // 地址缓存
@@ -204,7 +204,7 @@ static void ApplyItemInNewSlotPatch(BOOL enable)
 int GetItemStackLimit()
 {
     if (!g_pk_config.item_stack_limit_enabled)
-        return 9;
+        return 10;
 
     if (g_pk_config.item_stack_limit < 1)
         return 1;
@@ -275,8 +275,8 @@ void ApplyItemStackPatch(BOOL enable)
 // --------------------------------------------------------
 void ToggleItemStackState()
 {
-    g_bIsItemStackActive = !g_bIsItemStackActive;
-    ApplyItemStackPatch(g_bIsItemStackActive);
+    g_bIsGemStackActive = !g_bIsGemStackActive;
+    ApplyItemStackPatch(g_pk_config.enable_consumable_stack || g_bIsGemStackActive);
 }
 
 // --------------------------------------------------------
@@ -284,10 +284,8 @@ void ToggleItemStackState()
 // --------------------------------------------------------
 void Mod_item_stack_init(int game_version)
 {
-    // 即使 config 开启，初始状态也设为 FALSE (默认关闭)
-    // 只有按下快捷键才激活
     g_CurrentVersion = game_version;
-    g_bIsItemStackActive = g_pk_config.enable_gem_stack;
+    g_bIsGemStackActive = g_pk_config.enable_gem_stack;
     g_LimitPatchCount = 0;
 
     if (game_version == 105)
@@ -354,9 +352,6 @@ void Mod_item_stack_init(int game_version)
         g_Addr_FindInventorySlot = 0;
     }
 
-    ApplyItemStackPatch(g_bIsItemStackActive);
+    ApplyItemStackPatch(g_pk_config.enable_consumable_stack || g_bIsGemStackActive);
     ApplyItemStackLimitPatch();
-
-    // 初始化时不执行 Patch，因为默认是关闭的 (Original Values 本来就在内存里)
-    // 如果你希望 config=true 时启动即开启，可以在这里调用 ApplyItemStackPatch(TRUE);
 }

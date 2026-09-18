@@ -27,10 +27,9 @@ X(TYPE_BOOL, enable_skill_respec, "Player", "EnableSkillRespec", 1, "启用重�
 X(TYPE_BOOL, enable_ultimate_hotkey, "Player", "EnableUltimateHotkey", 1, "启用 Alt+1-4 快捷释放必杀技")
 
 // 物品属性与商店
+X(TYPE_BOOL, enable_consumable_stack, "Item&Shop", "EnableConsumableStack", 1, "启用回复道具叠加")
 X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")
-X(TYPE_BOOL, shop_inf_stock, "Item&Shop", "InfStock", 0, "商店无限库存 (购买不消失)")
-X(TYPE_BOOL, shop_item_count, "Item&Shop", "OptimizeItem", 1, "商店物品堆叠/随机数量")
-X(TYPE_BOOL, shop_sort, "Item&Shop", "EnableSort", 1, "商店物品自动排序")
+X(TYPE_BOOL, shop_optimize, "Item&Shop", "OptimizeShop", 1, "商店优化（回复道具套餐、ID 4-15 无限售卖与分类排序）")
 X(TYPE_BOOL, hold_show_item_name, "Item&Shop", "EnableHoldShowItemName", 1, "启用长按快捷键显示地面物品名称")
 
 // --- 合成与装备 ---
