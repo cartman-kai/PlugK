@@ -316,7 +316,7 @@ namespace UIManager
         if (!canLaunchMod)
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 
-        if (ImGui::Button("启动 MOD 模式", buttonSize))
+        if (ImGui::Button("启动增强版游戏", buttonSize))
         {
             if (canLaunchMod)
                 ModLoader::LaunchWithMod();
@@ -362,24 +362,24 @@ namespace UIManager
             if (ver == 105)
             {
                 nameOriginal = "刀剑正传";
-                nameMod = "刀剑正传-MOD";
+                nameMod = "刀剑正传-增强";
             }
             else if (ver == 201)
             {
                 nameOriginal = "上古传说";
-                nameMod = "上古传说-MOD";
+                nameMod = "上古传说-增强";
             }
 
             float itemH = 30 * g_dpiScale;
-            if (ImGui::Selectable("创建 [ 原版 ] 快捷方式", false, 0, ImVec2(0, itemH)))
+            if (ImGui::Selectable("创建 [原版] 快捷方式", false, 0, ImVec2(0, itemH)))
             {
                 if (Utils::CreateDesktopShortcut(target, nameOriginal, "--original"))
                     ShowSaveNotification("原版快捷方式已创建！");
             }
-            if (ImGui::Selectable("创建 [ MOD模式 ] 快捷方式", false, 0, ImVec2(0, itemH)))
+            if (ImGui::Selectable("创建 [增强版] 快捷方式", false, 0, ImVec2(0, itemH)))
             {
                 if (Utils::CreateDesktopShortcut(target, nameMod, "--mod"))
-                    ShowSaveNotification("MOD快捷方式已创建！");
+                    ShowSaveNotification("增强版快捷方式已创建！");
             }
             ImGui::EndPopup();
         }
@@ -413,7 +413,7 @@ namespace UIManager
         ImGui::BeginGroup();
         static std::string activeSubTab = "UI";
         const char *subTabs[] = {"UI", "Player", "Item&Shop", "Equipment", "Hotkeys"};
-        const char *subTabsCN[] = {"界面显示", "角色", "物品与商店", "装备合成", "快捷按键"};
+        const char *subTabsCN[] = {"显示", "角色", "物品与商店", "装备合成", "快捷按键"};
 
         float tabW = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 4) / 5.0f;
 

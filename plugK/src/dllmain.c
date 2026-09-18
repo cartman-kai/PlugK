@@ -122,7 +122,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 跳过开场动画
             Mod_Intro_Skip_Init(ver);
 
-            // 炼化物品数量优化
+            // 合成消耗物品数量优化
             Mod_Fuse_Count_Opt_init(ver);
 
             // 显示物品名称
@@ -134,7 +134,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
             // 通关继承优化
             Mod_SaveInheritance_Init(ver);
 
-            // 一键洗技能
+            // 重置技能
             Mod_Skill_Respec_Init(ver);
 
             // 必杀技快捷释放

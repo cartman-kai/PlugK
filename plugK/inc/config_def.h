@@ -1,10 +1,10 @@
-/* * config_def.h
+﻿/* * config_def.h
  * 格式: X(类型, 变量名, Section, Key, 默认值, 中文描述)
  * 类型支持: TYPE_BOOL, TYPE_INT, TYPE_KEY
  */
 
 // --- 界面设置 ---
-X(TYPE_BOOL, ui_keep_center, "UI", "KeepCenter", 1, "保持界面居中 (防晃动)")
+X(TYPE_BOOL, ui_keep_center, "UI", "KeepCenter", 1, "保持主角居中")
 X(TYPE_BOOL, disable_screen_shake, "UI", "disable_screen_shake", 1, "禁用屏幕震动")
 X(TYPE_BOOL, skip_intro_movie, "UI", "SkipIntroMovie", 1, "跳过开场动画")
 X(TYPE_BOOL, enable_fix_inheritance, "UI", "enable_fix_inheritance", 1, "通关后存档继承优化")
@@ -29,7 +29,7 @@ X(TYPE_BOOL, enable_ultimate_hotkey, "Player", "EnableUltimateHotkey", 1, "启�
 // 物品属性与商店
 X(TYPE_BOOL, enable_consumable_stack, "Item&Shop", "EnableConsumableStack", 1, "启用回复道具叠加")
 X(TYPE_BOOL, enable_gem_stack, "Item&Shop", "EnableGemStack", 1, "启用宝石叠加")
-X(TYPE_BOOL, shop_optimize, "Item&Shop", "OptimizeShop", 1, "商店优化（回复道具套餐、ID 4-15 无限售卖与分类排序）")
+X(TYPE_BOOL, shop_optimize, "Item&Shop", "OptimizeShop", 1, "商店优化（回复道具无限售卖与分类排序）")
 X(TYPE_BOOL, hold_show_item_name, "Item&Shop", "EnableHoldShowItemName", 1, "启用长按快捷键显示地面物品名称")
 
 // --- 合成与装备 ---
